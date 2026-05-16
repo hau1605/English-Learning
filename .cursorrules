@@ -1,0 +1,47 @@
+# English Learning Platform
+
+## Mục tiêu
+
+Tài liệu này dùng làm global engineering guidelines cho toàn bộ project English Learning Platform.
+
+## Architecture
+
+### Backend (NestJS)
+- Modular Monolith architecture
+- Stack: NestJS, Prisma, PostgreSQL, Redis, BullMQ
+
+### Frontend (Next.js)
+- Stack: Next.js, TypeScript, Tailwind CSS, React Query, Zustand
+
+## Quick Reference
+
+### Backend Rules
+- Service: chứa business logic
+- Controller: xử lý request/response, validate input
+- Repository: query database
+- Mọi input phải dùng DTO với class-validator
+- Không hardcode permissions → dùng RBAC
+- Database: dùng UUID (không auto increment)
+- Tables: snake_case, plural
+
+### Frontend Rules
+- Component: nhỏ, reusable, < 300 lines
+- Business logic: hooks, services, stores
+- State: React Query (server), Zustand (client)
+- Form: React Hook Form + Zod
+- Styling: Tailwind CSS (không inline styles)
+- **BẮT BUỘC sử dụng `@/` path alias thay vì relative paths như `../../../` hoặc `../..`**
+- Khai báo import theo dạng: `import { Button } from '@/components/ui/button'`
+- KHÔNG dùng: `import { Button } from '../../../components/ui/button'`
+
+### Anti-patterns
+- Không: massive services/components
+- Không: circular dependencies
+- Không: business logic trong controller
+- Không: query DB trong loops
+- Không: hardcoded permissions
+- Không: direct AI calls từ frontend
+
+## Detailed Guidelines
+
+Xem `.cursor/rules/engineering-standards.md` để có đầy đủ chi tiết.

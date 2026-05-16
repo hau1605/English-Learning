@@ -1,0 +1,45 @@
+export const RESPONSE_MESSAGES = {
+  AUTH: {
+    LOGIN_SUCCESS: 'Login successful',
+    LOGOUT_SUCCESS: 'Logout successful',
+    REGISTER_SUCCESS: 'Registration successful',
+    REFRESH_SUCCESS: 'Token refreshed successfully',
+    INVALID_CREDENTIALS: 'Invalid email or password',
+    INVALID_TOKEN: 'Invalid or expired token',
+    TOKEN_EXPIRED: 'Token has expired',
+    EMAIL_EXISTS: 'Email already exists',
+    EMAIL_NOT_VERIFIED: 'Email not verified',
+    VERIFICATION_SENT: 'Verification email sent',
+    PASSWORD_RESET_SENT: 'Password reset email sent',
+    PASSWORD_CHANGED: 'Password changed successfully',
+  },
+  USER: {
+    CREATED: 'User created successfully',
+    UPDATED: 'User updated successfully',
+    DELETED: 'User deleted successfully',
+    NOT_FOUND: 'User not found',
+    PROFILE_FETCHED: 'Profile fetched successfully',
+  },
+  PERMISSION: {
+    DENIED: 'Permission denied',
+    GRANTED: 'Permission granted',
+  },
+  FLASHCARD: {
+    REVIEW_COMPLETED: 'Flashcard review completed',
+    DUE_CARDS_FETCHED: 'Due cards fetched successfully',
+    STATS_FETCHED: 'Flashcard stats fetched successfully',
+  },
+  QUIZ: {
+    SUBMITTED: 'Quiz submitted successfully',
+    NOT_FOUND: 'Quiz not found',
+    ALREADY_COMPLETED: 'Quiz already completed',
+  },
+  COMMON: {
+    CREATED: 'Created successfully',
+    UPDATED: 'Updated successfully',
+    DELETED: 'Deleted successfully',
+    NOT_FOUND: 'Not found',
+    FORBIDDEN: 'Forbidden',
+    SERVER_ERROR: 'Internal server error',
+  },
+} as const;

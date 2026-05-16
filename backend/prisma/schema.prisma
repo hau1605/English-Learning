@@ -1,0 +1,793 @@
+// English Learning Platform Database Schema
+// PostgreSQL with UUID primary keys, soft deletes, audit fields
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// COMMON / BASE
+// ============================================
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String
+  fullName      String
+  avatarUrl     String?
+  level         Int      @default(1)
+  xp            Int      @default(0)
+  streakDays    Int      @default(0)
+  lastStudyAt   DateTime?
+  status        UserStatus @default(ACTIVE)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  // Relations
+  sessions           UserSession[]
+  userRoles          UserRole[]
+  flashcardReviews   UserFlashcardReview[]
+  quizAttempts       UserQuizAttempt[]
+  speakingAttempts   UserSpeakingAttempt[]
+  dailyStats         UserDailyStat[]
+  lessonViews        LessonView[]
+  notifications      UserNotification[]
+  auditLogs          AuditLog[]
+  refreshTokens       RefreshToken[]
+  emailVerifications EmailVerification[]
+  passwordResets     PasswordReset[]
+
+  @@index([email])
+  @@index([status])
+  @@index([xp])
+  @@index([streakDays])
+  @@map("users")
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+model UserSession {
+  id            String   @id @default(uuid())
+  userId        String
+  refreshToken  String
+  deviceInfo    String?
+  ipAddress     String?
+  userAgent     String?
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshToken])
+  @@map("user_sessions")
+}
+
+model RefreshToken {
+  id          String   @id @default(uuid())
+  userId      String
+  tokenHash   String
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model EmailVerification {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  verifiedAt DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@map("email_verifications")
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@map("password_resets")
+}
+
+// ============================================
+// ROLES & PERMISSIONS (RBAC)
+// ============================================
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  code        String   @unique
+  description String?
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+  roleMenuAccess  RoleMenuAccess[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  description String?
+  resource    String
+  action      String
+  createdAt   DateTime @default(now())
+
+  rolePermissions RolePermission[]
+
+  @@index([code])
+  @@map("permissions")
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  id         String   @id @default(uuid())
+  roleId     String
+  permissionId String
+  createdAt  DateTime @default(now())
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+// ============================================
+// LEARNING SYSTEM
+// ============================================
+
+model Course {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  thumbnail   String?
+  level       CourseLevel
+  status      CourseStatus @default(DRAFT)
+  publishedAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime?
+
+  sections CourseSection[]
+
+  @@index([status])
+  @@map("courses")
+}
+
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model CourseSection {
+  id          String   @id @default(uuid())
+  courseId    String
+  title       String
+  description String?
+  orderIndex  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@index([courseId])
+  @@map("course_sections")
+}
+
+model Lesson {
+  id            String     @id @default(uuid())
+  sectionId     String
+  title         String
+  description   String?
+  type          LessonType
+  content       String?    @db.Text
+  videoUrl      String?
+  estimatedTime Int?       // minutes
+  orderIndex    Int        @default(0)
+  publishedAt   DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  deletedAt     DateTime?
+
+  section         CourseSection?     @relation(fields: [sectionId], references: [id])
+  quizzes          Quiz[]
+  speakingExercises SpeakingExercise[]
+  views            LessonView[]
+
+  @@index([sectionId])
+  @@index([type])
+  @@map("lessons")
+}
+
+enum LessonType {
+  VIDEO
+  READING
+  INTERACTIVE
+  PRACTICE
+}
+
+model LessonView {
+  id        String   @id @default(uuid())
+  userId    String
+  lessonId  String
+  viewedAt  DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([lessonId])
+  @@index([viewedAt])
+  @@map("lesson_views")
+}
+
+// ============================================
+// VOCABULARY & FLASHCARDS
+// ============================================
+
+model Topic {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?
+  icon        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  vocabularies Vocabulary[]
+
+  @@map("topics")
+}
+
+model Vocabulary {
+  id            String   @id @default(uuid())
+  topicId       String
+  word          String
+  pronunciation String?
+  meaning       String
+  example       String?
+  exampleTranslation String?
+  audioUrl      String?
+  imageUrl      String?
+  difficulty    Int      @default(1) // 1-5
+  partOfSpeech  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  topic      Topic           @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  flashcards Flashcard[]
+  userReviews UserFlashcardReview[]
+
+  @@index([topicId])
+  @@index([word])
+  @@index([difficulty])
+  @@map("vocabularies")
+}
+
+model Flashcard {
+  id           String   @id @default(uuid())
+  vocabularyId String
+  frontContent String
+  backContent  String
+  audioUrl     String?
+  imageUrl     String?
+  hint         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  vocabulary Vocabulary @relation(fields: [vocabularyId], references: [id])
+  reviews     UserFlashcardReview[]
+
+  @@index([vocabularyId])
+  @@map("flashcards")
+}
+
+model UserFlashcardReview {
+  id              String   @id @default(uuid())
+  userId          String
+  flashcardId     String
+  vocabularyId    String
+  repetitionCount Int      @default(0)
+  easeFactor      Float    @default(2.5)
+  intervalDays    Int      @default(1)
+  nextReviewAt    DateTime
+  lastReviewedAt  DateTime?
+  correctStreak   Int      @default(0)
+  wrongCount      Int      @default(0)
+  totalReviews    Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  flashcard  Flashcard  @relation(fields: [flashcardId], references: [id], onDelete: Cascade)
+  vocabulary Vocabulary @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, flashcardId])
+  @@index([userId, nextReviewAt])
+  @@index([flashcardId])
+  @@map("user_flashcard_reviews")
+}
+
+// ============================================
+// QUIZ SYSTEM
+// ============================================
+
+model Quiz {
+  id              String      @id @default(uuid())
+  lessonId        String?
+  title           String
+  description     String?
+  type            QuizType
+  durationSeconds Int?        // null = unlimited
+  passingScore    Int         @default(70)
+  maxAttempts     Int?        // null = unlimited
+  isGenerated     Boolean     @default(false)
+  publishedAt     DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  deletedAt       DateTime?
+
+  lesson   Lesson?           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  questions QuizQuestion[]
+  attempts  UserQuizAttempt[]
+
+  @@index([lessonId])
+  @@index([type])
+  @@map("quizzes")
+}
+
+enum QuizType {
+  MULTIPLE_CHOICE
+  FILL_BLANK
+  MATCHING
+  SPEAKING
+  MIXED
+}
+
+model QuizQuestion {
+  id          String       @id @default(uuid())
+  quizId      String
+  type        QuestionType
+  question    String
+  explanation String?      @db.Text
+  audioUrl    String?
+  imageUrl    String?
+  orderIndex  Int          @default(0)
+  points      Int          @default(1)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  quiz    Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  answers QuizAnswer[]
+
+  @@index([quizId])
+  @@map("quiz_questions")
+}
+
+enum QuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  FILL_BLANK
+  ORDERING
+}
+
+model QuizAnswer {
+  id         String  @id @default(uuid())
+  questionId String
+  answer     String
+  isCorrect  Boolean @default(false)
+  orderIndex Int     @default(0)
+
+  question QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+  @@map("quiz_answers")
+}
+
+model UserQuizAttempt {
+  id           String    @id @default(uuid())
+  userId       String
+  quizId       String
+  score        Int
+  totalCorrect Int
+  totalQuestions Int
+  startedAt    DateTime  @default(now())
+  submittedAt  DateTime?
+  timeSpent    Int?      // seconds
+  createdAt    DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([quizId])
+  @@index([userId, submittedAt])
+  @@index([quizId, submittedAt])
+  @@map("user_quiz_attempts")
+}
+
+// ============================================
+// GRAMMAR
+// ============================================
+
+model GrammarCategory {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?
+  orderIndex  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lessons GrammarLesson[]
+
+  @@map("grammar_categories")
+}
+
+model GrammarLesson {
+  id          String   @id @default(uuid())
+  categoryId  String
+  title       String
+  slug        String   @unique
+  explanation String   @db.Text
+  examples    Json?    // array of example objects
+  exercises   Json?    // array of exercise objects
+  difficulty  Int      @default(1)
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  category GrammarCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId])
+  @@map("grammar_lessons")
+}
+
+// ============================================
+// SPEAKING
+// ============================================
+
+model SpeakingExercise {
+  id                   String   @id @default(uuid())
+  lessonId             String?
+  title                String
+  textContent          String   @db.Text
+  expectedPronunciation String?
+  difficulty           Int      @default(1)
+  audioUrl             String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  lesson    Lesson?              @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  attempts  UserSpeakingAttempt[]
+
+  @@index([lessonId])
+  @@map("speaking_exercises")
+}
+
+model UserSpeakingAttempt {
+  id                 String   @id @default(uuid())
+  userId             String
+  speakingExerciseId String
+  audioUrl           String
+  transcript         String?
+  pronunciationScore Float?
+  fluencyScore       Float?
+  accuracyScore      Float?
+  overallScore       Float?
+  feedback           String?  @db.Text
+  processingStatus   ProcessingStatus @default(PENDING)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise  SpeakingExercise @relation(fields: [speakingExerciseId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([speakingExerciseId])
+  @@index([userId, processingStatus])
+  @@index([processingStatus, createdAt])
+  @@map("user_speaking_attempts")
+}
+
+enum ProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ============================================
+// ANALYTICS
+// ============================================
+
+model UserDailyStat {
+  id            String   @id @default(uuid())
+  userId        String
+  date          DateTime @db.Date
+  learnedWords  Int      @default(0)
+  flashcardsReviewed Int @default(0)
+  quizzesCompleted Int   @default(0)
+  speakingMinutes  Int   @default(0)
+  studyMinutes     Int   @default(0)
+  xpEarned        Int    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+  @@map("user_daily_stats")
+}
+
+model AnalyticsEvent {
+  id         String   @id @default(uuid())
+  userId     String?
+  eventName  String
+  metadata   Json?
+  sessionId  String?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([eventName])
+  @@index([createdAt])
+  @@map("analytics_events")
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id        String           @id @default(uuid())
+  type      NotificationType
+  title     String
+  content   String           @db.Text
+  data      Json?
+  createdAt DateTime         @default(now())
+
+  userNotifications UserNotification[]
+
+  @@index([type])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  SYSTEM
+  STREAK
+  ACHIEVEMENT
+  REMINDER
+  SOCIAL
+  PROMOTION
+}
+
+model UserNotification {
+  id             String   @id @default(uuid())
+  userId         String
+  notificationId String
+  isRead         Boolean  @default(false)
+  readAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("user_notifications")
+}
+
+// ============================================
+// MEDIA FILES
+// ============================================
+
+model MediaFile {
+  id          String   @id @default(uuid())
+  fileKey     String
+  fileUrl     String
+  mimeType    String
+  size        Int
+  bucket      String   @default("english-learning")
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@unique([fileKey])
+  @@index([fileKey])
+  @@index([bucket, createdAt])
+  @@map("media_files")
+}
+
+// ============================================
+// LEADERBOARD
+// ============================================
+
+model LeaderboardEntry {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  xp        Int
+  rank      Int
+  weekXp    Int      @default(0)
+  monthXp   Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@map("leaderboard_entries")
+}
+
+// ============================================
+// AUDIT LOG
+// ============================================
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  action     String
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================
+// QUEUE JOBS
+// ============================================
+
+model QueueJob {
+  id         String        @id @default(uuid())
+  name       String
+  data       Json
+  status     JobStatus     @default(PENDING)
+  attempts   Int           @default(0)
+  maxAttempts Int          @default(3)
+  result     Json?
+  error      String?
+  scheduledAt DateTime?
+  processedAt DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([status])
+  @@index([name, status])
+  @@map("queue_jobs")
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ============================================
+// SYSTEM SETTINGS
+// ============================================
+
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String   @db.Text
+  type      String   @default("string")
+  category  String   @default("general")
+  isPublic  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+// ============================================
+// MENU SYSTEM
+// ============================================
+
+model MenuItem {
+  id         String   @id @default(uuid())
+  code       String   @unique
+  label      String
+  icon       String?
+  path       String
+  orderIndex Int      @default(0)
+  parentId   String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  parent     MenuItem?        @relation("MenuHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children   MenuItem[]       @relation("MenuHierarchy")
+  roleAccess RoleMenuAccess[]
+
+  @@index([parentId])
+  @@index([orderIndex])
+  @@index([isActive])
+  @@map("menu_items")
+}
+
+model RoleMenuAccess {
+  id         String   @id @default(uuid())
+  roleId     String
+  menuItemId String
+  createdAt  DateTime @default(now())
+
+  role     Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  menuItem MenuItem  @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, menuItemId])
+  @@index([roleId])
+  @@index([menuItemId])
+  @@map("role_menu_access")
+}

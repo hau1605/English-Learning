@@ -1,0 +1,108 @@
+name: Deploy
+
+description: Deploy application to environment
+
+inputs:
+  environment:
+    description: 'Target environment'
+    required: true
+    type: choice
+    options:
+      - staging
+      - production
+  image:
+    description: 'Docker image to deploy'
+    required: true
+    type: string
+
+runs:
+  using: composite
+  steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Pull Docker image
+      run: docker pull ${{ inputs.image }}
+
+    - name: Tag Docker image
+      run: |
+        docker tag ${{ inputs.image }} ${{ steps.login-ecr.outputs.account }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/elp-${{ inputs.environment }}:${{ github.sha }}
+
+    - name: Push to ECR
+      run: |
+        docker push ${{ steps.login-ecr.outputs.account }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/elp-${{ inputs.environment }}:${{ github.sha }}
+
+    - name: Update ECS service
+      run: |
+        aws ecs update-service \
+          --cluster elp-${{ inputs.environment }}-cluster \
+          --service elp-${{ inputs.environment }}-api \
+          --task-definition elp-${{ inputs.environment }}-api:${{ env.ECS_REVISION }} \
+          --force-new-deployment \
+          --region ${{ secrets.AWS_REGION }}
+
+    - name: Wait for deployment
+      run: |
+        aws ecs wait services-stable \
+          --cluster elp-${{ inputs.environment }}-cluster \
+          --services elp-${{ inputs.environment }}-api \
+          --region ${{ secrets.AWS_REGION }}
+
+    - name: Run database migrations
+      if: inputs.environment == 'production'
+      run: |
+        aws ecs run-task \
+          --cluster elp-${{ inputs.environment }}-cluster \
+          --task-definition elp-${{ inputs.environment }}-migrations \
+          --launch-type FARGATE \
+          --network-configuration "awsvpcConfiguration={subnets=[${{ secrets.SUBNET_IDS }}],securityGroups=[${{ secrets.SG_ID }}]}" \
+          --overrides "containerOverrides=[{\"name\":\"migrations\",\"environment\":[{\"name\":\"DATABASE_URL\",\"value\":\"${{ secrets.DATABASE_URL }}\"}]}]"
+
+    - name: Notify Slack on failure
+      if: failure()
+      uses: slackapi/slack-github-action@v1
+      with:
+        channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
+        payload: |
+          {
+            "text": ":x: Deployment to ${{ inputs.environment }} failed",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": ":x: *Deployment Failed*\n\n*Environment:* ${{ inputs.environment }}\n*Commit:* ${{ github.sha }}\n*Workflow:* ${{ github.workflow }}"
+                }
+              }
+            ]
+          }
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+    - name: Notify Slack on success
+      if: success()
+      uses: slackapi/slack-github-action@v1
+      with:
+        channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
+        payload: |
+          {
+            "text": ":white_check_mark: Deployment to ${{ inputs.environment }} successful",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": ":white_check_mark: *Deployment Successful*\n\n*Environment:* ${{ inputs.environment }}\n*Commit:* ${{ github.sha }}"
+                }
+              }
+            ]
+          }
+      env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

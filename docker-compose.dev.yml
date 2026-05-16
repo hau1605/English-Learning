@@ -1,0 +1,134 @@
+# ============================================
+# English Learning Platform - Development Docker Compose
+# ============================================
+# Usage:
+#   docker-compose -f docker-compose.dev.yml up
+#   docker-compose -f docker-compose.dev.yml down
+#   docker-compose -f docker-compose.dev.yml down -v  # with volumes
+
+version: "3.8"
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: english-learning-db-dev
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: english_learning
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - english-learning-dev
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: english-learning-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - english-learning-dev
+
+  # MinIO Storage
+  minio:
+    image: minio/minio:latest
+    container_name: english-learning-minio-dev
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_dev_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - english-learning-dev
+
+  # Backend API (with hot reload)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: english-learning-api-dev
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/english_learning
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      JWT_SECRET: dev-jwt-secret-key-change-in-production-32chars
+      JWT_REFRESH_SECRET: dev-refresh-secret-key-change-in-production-32chars
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      FRONTEND_URL: http://localhost:3681
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_BUCKET: english-learning
+      S3_REGION: us-east-1
+      S3_PUBLIC_URL: http://localhost:9000
+      THROTTLE_TTL: 60000
+      THROTTLE_LIMIT: 100
+      LOG_LEVEL: debug
+      ENABLE_HTTPS: "false"
+      TRUST_PROXY: "false"
+      ENABLE_SWAGGER: "true"
+      SECURE_COOKIE: "false"
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/src:ro
+      - ./backend/prisma:/app/prisma:ro
+    networks:
+      - english-learning-dev
+
+  # Nginx (HTTP only for development)
+  nginx:
+    image: nginx:alpine
+    container_name: english-learning-nginx-dev
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - minio
+    networks:
+      - english-learning-dev
+
+networks:
+  english-learning-dev:
+    driver: bridge
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+  minio_dev_data:
