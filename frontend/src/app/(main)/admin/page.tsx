@@ -431,8 +431,8 @@ export default function AdminDashboardPage() {
                           className="flex items-center justify-between rounded-lg border p-3"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
-                              <Activity className="h-5 w-5 text-gray-500" />
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                              <Activity className="h-5 w-5 text-muted-foreground" />
                             </div>
                             <div>
                               <p className="font-medium">{item.action}</p>
@@ -509,7 +509,7 @@ export default function AdminDashboardPage() {
                           {stats?.data?.totalVocabulary || 0}
                         </span>
                       </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
                           className="h-full bg-teal-500 rounded-full"
                           style={{ width: "75%" }}
@@ -527,7 +527,7 @@ export default function AdminDashboardPage() {
                           {stats?.data?.totalFlashcards || 0}
                         </span>
                       </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
                           className="h-full bg-purple-500 rounded-full"
                           style={{ width: "60%" }}
@@ -545,7 +545,7 @@ export default function AdminDashboardPage() {
                           {stats?.data?.totalQuizzes || 0}
                         </span>
                       </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
                           className="h-full bg-orange-500 rounded-full"
                           style={{ width: "45%" }}

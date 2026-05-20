@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { BullModule } from "@nestjs/bullmq";
+import * as path from "path";
 import { PrismaModule } from "@/prisma/prisma.module";
 import { AuthModule } from "@/modules/auth/auth.module";
 import { UsersModule } from "@/modules/users/users.module";
@@ -27,12 +28,24 @@ import { WebsocketModule } from "@/websocket/websocket.module";
 import { EventsModule } from "@/events/events.module";
 import { JobsModule } from "@/jobs/jobs.module";
 import { MenuModule } from "@/modules/menu/menu.module";
+import { CrawlerModule } from "@/modules/crawler/crawler.module";
 import { validate } from "@/config/env.validation";
+import { existsSync } from "fs";
 
-const isProduction = process.env.NODE_ENV === "production";
+// Step 1: Load base .env to get NODE_ENV
+const baseEnvPath = path.resolve(process.cwd(), ".env");
+if (existsSync(baseEnvPath)) {
+  require("dotenv").config({ path: baseEnvPath });
+}
+
+// Step 2: Determine environment from NODE_ENV (now available after step 1)
+const nodeEnv = process.env.NODE_ENV || "development";
+const isProduction = nodeEnv === "production";
+
+// Step 3: Set up env file paths based on environment
 const envFilePath = isProduction
-  ? [".env.production", ".env"]
-  : [".env.development", ".env"];
+  ? [path.resolve(process.cwd(), ".env.production"), path.resolve(process.cwd(), ".env")]
+  : [path.resolve(process.cwd(), ".env.development"), path.resolve(process.cwd(), ".env")];
 
 @Module({
   imports: [
@@ -92,6 +105,7 @@ const envFilePath = isProduction
     EventsModule,
     JobsModule,
     MenuModule,
+    // CrawlerModule,
   ],
   providers: [],
 })

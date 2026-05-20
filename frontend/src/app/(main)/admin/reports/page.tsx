@@ -516,7 +516,7 @@ export default function AdminReportsPage() {
                                   ? "bg-gray-400"
                                   : index === 2
                                     ? "bg-amber-600"
-                                    : "bg-gray-200 text-gray-700"
+                                    : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
                             }`}
                           >
                             #{index + 1}

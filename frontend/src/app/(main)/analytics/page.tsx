@@ -319,7 +319,7 @@ export default function AnalyticsPage() {
                       </span>
                       <span className="font-medium">{Math.round((totals.flashcardsReviewed || 0) * 10)} XP</span>
                     </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
                       <div
                         className="h-full bg-purple-500 rounded-full"
                         style={{ width: `${Math.min(100, (totals.flashcardsReviewed || 0) * 2)}%` }}
@@ -335,7 +335,7 @@ export default function AnalyticsPage() {
                       </span>
                       <span className="font-medium">{Math.round((totals.quizzesCompleted || 0) * 20)} XP</span>
                     </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
                       <div
                         className="h-full bg-orange-500 rounded-full"
                         style={{ width: `${Math.min(100, (totals.quizzesCompleted || 0) * 5)}%` }}
@@ -351,7 +351,7 @@ export default function AnalyticsPage() {
                       </span>
                       <span className="font-medium">{Math.round((totals.learnedWords || 0) * 5)} XP</span>
                     </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
                       <div
                         className="h-full bg-blue-500 rounded-full"
                         style={{ width: `${Math.min(100, (totals.learnedWords || 0) * 2)}%` }}

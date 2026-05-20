@@ -24,7 +24,7 @@ async function bootstrap() {
   app.use('/uploads', express.static(localUploadRoot));
 
   // CORS configuration based on environment
-  const frontendUrl = configService.get<string>('FRONTEND_URL') || 'http://localhost:3001';
+  const frontendUrl = configService.get<string>('FRONTEND_URL') || 'http://localhost:3681';
   const corsMethods = configService.get<string>('CORS_METHODS')?.split(',') || ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
   const corsHeaders = configService.get<string>('CORS_HEADERS')?.split(',') || ['Content-Type', 'Authorization', 'Cookie'];
   const secureCookie = configService.get<boolean>('SECURE_COOKIE') || false;

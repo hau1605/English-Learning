@@ -13,8 +13,8 @@ import {
   HttpStatus,
   BadRequestException,
   UseGuards,
-} from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+} from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
 import {
   ApiTags,
   ApiOperation,
@@ -23,54 +23,56 @@ import {
   ApiConsumes,
   ApiBody,
   ApiProduces,
-} from '@nestjs/swagger';
-import { MediaService } from '../services/media.service';
-import { MediaType, UploadMediaDto, MediaResponseDto, UploadResultDto } from '../dto/media.dto';
-import { Permissions } from '@/modules/permissions/decorators/permissions.decorator';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
-import { PermissionGuard } from '@/modules/permissions/guards/permission.guard';
+} from "@nestjs/swagger";
+import { MediaService } from "../services/media.service";
+import {
+  MediaType,
+  UploadMediaDto,
+  MediaResponseDto,
+  UploadResultDto,
+} from "../dto/media.dto";
+import { Permissions } from "@/modules/permissions/decorators/permissions.decorator";
+import { JwtAuthGuard } from "@/modules/auth/guards/jwt-auth.guard";
+import { PermissionGuard } from "@/modules/permissions/guards/permission.guard";
 
-@ApiTags('media')
-@Controller('media')
+@ApiTags("media")
+@Controller("media")
 @UseGuards(JwtAuthGuard, PermissionGuard)
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
 
-  @Post('upload')
-  @Permissions('media.upload')
+  @Post("upload")
+  @Permissions("media.upload")
   @ApiBearerAuth()
-  @ApiConsumes('multipart/form-data')
+  @ApiConsumes("multipart/form-data")
   @ApiBody({
     schema: {
-      type: 'object',
+      type: "object",
       properties: {
         file: {
-          type: 'string',
-          format: 'binary',
+          type: "string",
+          format: "binary",
         },
         type: {
-          type: 'string',
+          type: "string",
           enum: Object.values(MediaType),
         },
         folder: {
-          type: 'string',
+          type: "string",
         },
       },
     },
   })
-  @ApiOperation({ summary: 'Upload a file' })
+  @ApiOperation({ summary: "Upload a file" })
   @ApiResponse({
     status: 201,
-    description: 'File uploaded successfully',
+    description: "File uploaded successfully",
     type: UploadResultDto,
   })
-  @UseInterceptors(FileInterceptor('file'))
-  async uploadFile(
-    @UploadedFile() file: Express.Multer.File,
-    @Body() dto: UploadMediaDto,
-  ) {
+  @UseInterceptors(FileInterceptor("file"))
+  async uploadFile(@UploadedFile() file: any, @Body() dto: UploadMediaDto) {
     if (!file) {
-      throw new BadRequestException('File is required');
+      throw new BadRequestException("File is required");
     }
 
     const result = await this.mediaService.uploadFile(file, dto.folder);
@@ -81,26 +83,26 @@ export class MediaController {
     };
   }
 
-  @Post('upload/audio')
-  @Permissions('media.upload')
+  @Post("upload/audio")
+  @Permissions("media.upload")
   @ApiBearerAuth()
-  @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Upload an audio file' })
+  @ApiConsumes("multipart/form-data")
+  @ApiOperation({ summary: "Upload an audio file" })
   @ApiResponse({
     status: 201,
-    description: 'Audio file uploaded successfully',
+    description: "Audio file uploaded successfully",
     type: UploadResultDto,
   })
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor("file"))
   async uploadAudio(
-    @UploadedFile() file: Express.Multer.File,
-    @Body('folder') folder?: string,
+    @UploadedFile() file: any,
+    @Body("folder") folder?: string,
   ) {
     if (!file) {
-      throw new BadRequestException('Audio file is required');
+      throw new BadRequestException("Audio file is required");
     }
 
-    const result = await this.mediaService.uploadAudio(file, folder || 'audio');
+    const result = await this.mediaService.uploadAudio(file, folder || "audio");
 
     return {
       media: result,
@@ -108,26 +110,29 @@ export class MediaController {
     };
   }
 
-  @Post('upload/image')
-  @Permissions('media.upload')
+  @Post("upload/image")
+  @Permissions("media.upload")
   @ApiBearerAuth()
-  @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Upload an image file' })
+  @ApiConsumes("multipart/form-data")
+  @ApiOperation({ summary: "Upload an image file" })
   @ApiResponse({
     status: 201,
-    description: 'Image uploaded successfully',
+    description: "Image uploaded successfully",
     type: UploadResultDto,
   })
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor("file"))
   async uploadImage(
-    @UploadedFile() file: Express.Multer.File,
-    @Body('folder') folder?: string,
+    @UploadedFile() file: any,
+    @Body("folder") folder?: string,
   ) {
     if (!file) {
-      throw new BadRequestException('Image file is required');
+      throw new BadRequestException("Image file is required");
     }
 
-    const result = await this.mediaService.uploadImage(file, folder || 'images');
+    const result = await this.mediaService.uploadImage(
+      file,
+      folder || "images",
+    );
 
     return {
       media: result,
@@ -135,32 +140,32 @@ export class MediaController {
     };
   }
 
-  @Get(':id/url')
-  @ApiOperation({ summary: 'Get signed URL for a file' })
+  @Get(":id/url")
+  @ApiOperation({ summary: "Get signed URL for a file" })
   @ApiResponse({
     status: 200,
-    description: 'Signed URL generated',
+    description: "Signed URL generated",
     schema: {
-      type: 'object',
+      type: "object",
       properties: {
-        url: { type: 'string' },
+        url: { type: "string" },
       },
     },
   })
   async getSignedUrl(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Query('expiresIn') expiresIn?: number,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Query("expiresIn") expiresIn?: number,
   ) {
     const media = await this.mediaService.getSignedUrl(id);
     return { url: media };
   }
 
-  @Delete('*')
-  @Permissions('media.delete')
+  @Delete("*")
+  @Permissions("media.delete")
   @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete a file' })
-  @ApiResponse({ status: 204, description: 'File deleted successfully' })
+  @ApiOperation({ summary: "Delete a file" })
+  @ApiResponse({ status: 204, description: "File deleted successfully" })
   async deleteFile(@Param() params: Record<string, string>) {
     const fileKey = params[0];
     await this.mediaService.deleteFile(fileKey);

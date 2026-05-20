@@ -34,9 +34,21 @@ export class PermissionsRepository {
     });
   }
 
+  async findByCode(code: string) {
+    return this.prisma.permission.findUnique({
+      where: { code },
+    });
+  }
+
   async create(data: { code: string; description?: string; resource: string; action: string }) {
-    return this.prisma.permission.create({
-      data: {
+    return this.prisma.permission.upsert({
+      where: { code: data.code },
+      update: {
+        description: data.description,
+        resource: data.resource,
+        action: data.action,
+      },
+      create: {
         code: data.code,
         description: data.description,
         resource: data.resource,

@@ -57,7 +57,7 @@ export function StreakCalendar({ currentStreak = 0 }: StreakCalendarProps) {
                   ? 'bg-orange-500'
                   : day.date.toDateString() === new Date().toDateString()
                   ? 'border-2 border-primary'
-                  : 'bg-gray-100'
+                  : 'bg-muted dark:bg-muted/50'
               }`}
               title={day.date.toLocaleDateString()}
             />

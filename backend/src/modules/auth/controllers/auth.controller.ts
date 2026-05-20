@@ -1,9 +1,12 @@
-import { Controller, Post, Body, Get, UseGuards, Req, Res, HttpCode, HttpStatus, Param } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Req, Res, HttpCode, HttpStatus, Param, UnauthorizedException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { Response, Request } from 'express';
+import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from '@/modules/auth/services/auth.service';
+import { PasswordResetService } from '@/modules/auth/services/password-reset.service';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { Public } from '@/modules/auth/decorators/public.decorator';
 import { LoginDto } from '@/modules/auth/dto/login.dto';
 import { RegisterDto } from '@/modules/auth/dto/register.dto';
 import { RESPONSE_MESSAGES } from '@/common/constants/response-messages';
@@ -14,6 +17,7 @@ import { AuditService } from '@/modules/audit/audit.service';
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
+    private readonly passwordResetService: PasswordResetService,
     private readonly configService: ConfigService,
     private readonly auditService: AuditService,
   ) {}
@@ -78,7 +82,9 @@ export class AuthController {
           accessToken: result.accessToken,
           expiresIn: result.expiresIn,
           userId: result.userId,
+          emailVerified: result.emailVerified,
         },
+        warning: result.warning,
       };
     } catch (error) {
       await this.auditService.log({
@@ -213,6 +219,55 @@ export class AuthController {
     });
 
     return { message: 'Session revoked' };
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @Public()
+  @ApiOperation({ summary: 'Request password reset' })
+  @ApiResponse({ status: 200, description: 'Password reset email sent if account exists' })
+  async forgotPassword(@Body('email') email: string) {
+    await this.passwordResetService.requestPasswordReset(email);
+    return {
+      message: 'If an account with that email exists, a new password has been sent.',
+    };
+  }
+
+  @Get('google')
+  @HttpCode(HttpStatus.OK)
+  @Public()
+  @UseGuards(AuthGuard('google'))
+  @ApiOperation({ summary: 'Initiate Google OAuth login' })
+  @ApiResponse({ status: 200, description: 'Redirects to Google' })
+  async googleAuth() {
+    // Passport will redirect to Google
+  }
+
+  @Get('google/callback')
+  @Public()
+  @UseGuards(AuthGuard('google'))
+  @ApiOperation({ summary: 'Google OAuth callback' })
+  @ApiResponse({ status: 200, description: 'Login successful' })
+  async googleAuthCallback(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const user = req.user as { id: string; email: string; fullName: string };
+
+    if (!user || !user.id) {
+      throw new UnauthorizedException('Google authentication failed');
+    }
+
+    const tokens = await this.authService.generateTokensForOAuth(user.id);
+
+    this.setRefreshTokenCookie(res, tokens.refreshToken);
+
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3681';
+    const redirectUrl = new URL(`${frontendUrl}/google/callback`);
+    redirectUrl.searchParams.set('access_token', tokens.accessToken);
+    redirectUrl.searchParams.set('expires_in', tokens.expiresIn.toString());
+
+    return res.redirect(redirectUrl.toString());
   }
 
   private auditContext(req: Request, actorId?: string) {

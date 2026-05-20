@@ -1,28 +1,50 @@
-import { Injectable, UnauthorizedException, ConflictException, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
-import { v4 as uuidv4 } from 'uuid';
-import { PrismaService } from '@/prisma/prisma.service';
-import { RedisService } from '@/common/redis/redis.service';
-import { CACHE_KEYS } from '@/common/constants/cache-keys';
-import { RESPONSE_MESSAGES } from '@/common/constants/response-messages';
-import { hashPassword, verifyPassword } from '@/common/utils';
-import { JwtPayload, TokenPair, SessionInfo } from '@/common/interfaces';
-import { CreateUserDto } from '@/modules/users/dto/create-user.dto';
-import { LoginDto } from '@/modules/auth/dto/login.dto';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  Logger,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { JwtService, type JwtSignOptions } from "@nestjs/jwt";
+import { v4 as uuidv4 } from "uuid";
+import { PrismaService } from "@/prisma/prisma.service";
+import { RedisService } from "@/common/redis/redis.service";
+import { CACHE_KEYS } from "@/common/constants/cache-keys";
+import { RESPONSE_MESSAGES } from "@/common/constants/response-messages";
+import { hashPassword, verifyPassword } from "@/common/utils";
+import { JwtPayload, TokenPair, SessionInfo } from "@/common/interfaces";
+import { CreateUserDto } from "@/modules/users/dto/create-user.dto";
+import { LoginDto } from "@/modules/auth/dto/login.dto";
+import { VerificationService } from "@/modules/verification/verification.service";
+
+export interface RegisterResult extends TokenPair {
+  userId: string;
+  emailVerified: boolean;
+}
+
+export interface LoginResult extends TokenPair {
+  userId: string;
+  emailVerified: boolean;
+  warning?: string;
+}
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  private readonly frontendUrl: string;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly redis: RedisService,
     private readonly configService: ConfigService,
-  ) {}
+    private readonly verificationService: VerificationService,
+  ) {
+    this.frontendUrl =
+      this.configService.get<string>("FRONTEND_URL") || "http://localhost:3681";
+  }
 
-  async register(dto: CreateUserDto): Promise<TokenPair & { userId: string }> {
+  async register(dto: CreateUserDto): Promise<RegisterResult> {
     const existingUser = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -38,7 +60,7 @@ export class AuthService {
         email: dto.email,
         passwordHash,
         fullName: dto.fullName,
-        status: 'PENDING_VERIFICATION',
+        status: "PENDING_VERIFICATION",
       },
     });
 
@@ -49,30 +71,49 @@ export class AuthService {
 
     await this.assignDefaultRole(user.id);
 
+    const verificationToken =
+      await this.verificationService.createVerificationToken(user.id);
+    const verificationUrl = `${this.frontendUrl}/verify-email?token=${verificationToken}`;
+
+    try {
+      await this.verificationService.resendVerificationEmail(user.email);
+      this.logger.log(`Verification email sent to: ${user.email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send verification email: ${error}`);
+    }
+
     this.logger.log(`User registered: ${user.email}`);
 
     return {
       ...tokens,
       userId: user.id,
+      emailVerified: false,
     };
   }
 
-  async login(dto: LoginDto): Promise<TokenPair & { userId: string }> {
+  async login(dto: LoginDto): Promise<LoginResult> {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
 
     if (!user) {
-      throw new UnauthorizedException(RESPONSE_MESSAGES.AUTH.INVALID_CREDENTIALS);
+      throw new UnauthorizedException(
+        RESPONSE_MESSAGES.AUTH.INVALID_CREDENTIALS,
+      );
     }
 
-    if (user.status === 'SUSPENDED') {
-      throw new UnauthorizedException('Account suspended');
+    if (user.status === "SUSPENDED") {
+      throw new UnauthorizedException("Account suspended");
     }
 
-    const isPasswordValid = await verifyPassword(dto.password, user.passwordHash);
+    const isPasswordValid = await verifyPassword(
+      dto.password,
+      user.passwordHash,
+    );
     if (!isPasswordValid) {
-      throw new UnauthorizedException(RESPONSE_MESSAGES.AUTH.INVALID_CREDENTIALS);
+      throw new UnauthorizedException(
+        RESPONSE_MESSAGES.AUTH.INVALID_CREDENTIALS,
+      );
     }
 
     const sessionId = uuidv4();
@@ -82,9 +123,18 @@ export class AuthService {
 
     this.logger.log(`User logged in: ${user.email}`);
 
+    const emailVerified = user.status === "ACTIVE";
+    let warning: string | undefined;
+
+    if (!emailVerified) {
+      warning = "Please verify your email to access all features.";
+    }
+
     return {
       ...tokens,
       userId: user.id,
+      emailVerified,
+      warning,
     };
   }
 
@@ -123,7 +173,9 @@ export class AuthService {
     this.logger.log(`User logged out from all devices: ${userId}`);
   }
 
-  async refreshTokens(refreshToken: string): Promise<TokenPair & { userId: string }> {
+  async refreshTokens(
+    refreshToken: string,
+  ): Promise<TokenPair & { userId: string }> {
     const payload = this.verifyRefreshToken(refreshToken);
 
     const session = await this.prisma.userSession.findUnique({
@@ -139,11 +191,14 @@ export class AuthService {
       throw new UnauthorizedException(RESPONSE_MESSAGES.AUTH.TOKEN_EXPIRED);
     }
 
-    if (session.user.status === 'SUSPENDED') {
-      throw new UnauthorizedException('Account suspended');
+    if (session.user.status === "SUSPENDED") {
+      throw new UnauthorizedException("Account suspended");
     }
 
-    const isRefreshTokenValid = await verifyPassword(refreshToken, session.refreshToken);
+    const isRefreshTokenValid = await verifyPassword(
+      refreshToken,
+      session.refreshToken,
+    );
     if (!isRefreshTokenValid) {
       await this.revokeSession(session.id);
       throw new UnauthorizedException(RESPONSE_MESSAGES.AUTH.INVALID_TOKEN);
@@ -198,7 +253,7 @@ export class AuthService {
       return null;
     }
 
-    if (session.user.status === 'SUSPENDED') {
+    if (session.user.status === "SUSPENDED") {
       return null;
     }
 
@@ -210,7 +265,11 @@ export class AuthService {
       userId: session.userId,
       sessionId: session.id,
       email: session.user.email,
-      roles: [...new Set<string>(session.user.userRoles.map((ur: any) => ur.role.code))],
+      roles: [
+        ...new Set<string>(
+          session.user.userRoles.map((ur: any) => ur.role.code),
+        ),
+      ],
       permissions: [...new Set<string>(permissions)],
       expiresAt: session.expiresAt,
     };
@@ -239,7 +298,7 @@ export class AuthService {
         createdAt: true,
         expiresAt: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     return sessions;
@@ -263,7 +322,7 @@ export class AuthService {
   }
 
   private verifyRefreshToken(token: string): JwtPayload {
-    const secret = this.configService.get<string>('JWT_REFRESH_SECRET');
+    const secret = this.configService.get<string>("JWT_REFRESH_SECRET");
     try {
       return this.jwtService.verify<JwtPayload>(token, { secret });
     } catch {
@@ -271,26 +330,32 @@ export class AuthService {
     }
   }
 
-  private async generateTokens(userId: string, sessionId: string): Promise<TokenPair> {
+  private async generateTokens(
+    userId: string,
+    sessionId: string,
+  ): Promise<TokenPair> {
     const payload: JwtPayload = {
       sub: userId,
       sessionId,
-      type: 'access',
+      type: "access",
     };
 
     const refreshPayload: JwtPayload = {
       sub: userId,
       sessionId,
-      type: 'refresh',
+      type: "refresh",
     };
 
     const accessToken = this.jwtService.sign(payload);
-    const refreshSecret = this.configService.get<string>('JWT_REFRESH_SECRET');
-    const refreshExpiresIn = this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d');
+    const refreshSecret = this.configService.get<string>("JWT_REFRESH_SECRET");
+    const refreshExpiresIn = this.configService.get<string>(
+      "JWT_REFRESH_EXPIRES_IN",
+      "7d",
+    );
 
     const refreshToken = this.jwtService.sign(refreshPayload, {
       secret: refreshSecret,
-      expiresIn: refreshExpiresIn,
+      expiresIn: refreshExpiresIn as JwtSignOptions["expiresIn"],
     });
 
     return {
@@ -318,9 +383,16 @@ export class AuthService {
     });
   }
 
+  async generateTokensForOAuth(userId: string): Promise<TokenPair> {
+    const sessionId = uuidv4();
+    const tokens = await this.generateTokens(userId, sessionId);
+    await this.createSession(userId, sessionId, tokens.refreshToken);
+    return tokens;
+  }
+
   private async assignDefaultRole(userId: string): Promise<void> {
     const studentRole = await this.prisma.role.findUnique({
-      where: { code: 'student' },
+      where: { code: "student" },
     });
 
     if (studentRole) {

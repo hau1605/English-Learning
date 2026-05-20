@@ -197,18 +197,18 @@ export function QuizTaker({ quizId, onComplete }: QuizTakerProps) {
             </div>
 
             <div className="grid grid-cols-3 gap-4">
-              <div className="p-4 bg-green-50 rounded-lg text-center">
-                <CheckCircle className="h-6 w-6 mx-auto mb-2 text-green-600" />
+              <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg text-center">
+                <CheckCircle className="h-6 w-6 mx-auto mb-2 text-green-600 dark:text-green-400" />
                 <div className="text-2xl font-bold">{result.totalCorrect}</div>
                 <p className="text-sm text-muted-foreground">Correct</p>
               </div>
-              <div className="p-4 bg-gray-50 rounded-lg text-center">
-                <Trophy className="h-6 w-6 mx-auto mb-2 text-gray-600" />
+              <div className="p-4 bg-muted rounded-lg text-center">
+                <Trophy className="h-6 w-6 mx-auto mb-2" />
                 <div className="text-2xl font-bold">{result.totalQuestions}</div>
                 <p className="text-sm text-muted-foreground">Total</p>
               </div>
-              <div className="p-4 bg-red-50 rounded-lg text-center">
-                <XCircle className="h-6 w-6 mx-auto mb-2 text-red-600" />
+              <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg text-center">
+                <XCircle className="h-6 w-6 mx-auto mb-2 text-red-600 dark:text-red-400" />
                 <div className="text-2xl font-bold">
                   {result.totalQuestions - result.totalCorrect}
                 </div>
@@ -256,7 +256,7 @@ export function QuizTaker({ quizId, onComplete }: QuizTakerProps) {
         </div>
         {timeRemaining !== null && (
           <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-            timeRemaining < 60 ? 'bg-red-100 text-red-700' : 'bg-muted'
+            timeRemaining < 60 ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 'bg-muted'
           }`}>
             <Clock className="h-5 w-5" />
             <span className="font-mono font-bold">{formatTime(timeRemaining)}</span>
@@ -277,8 +277,8 @@ export function QuizTaker({ quizId, onComplete }: QuizTakerProps) {
               index === currentQuestionIndex
                 ? 'bg-primary text-primary-foreground'
                 : isAnswered(q.id)
-                  ? 'bg-green-100 text-green-700 border border-green-300'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700'
+                  : 'bg-muted text-muted-foreground hover:bg-accent'
             }`}
           >
             {index + 1}
@@ -306,7 +306,7 @@ export function QuizTaker({ quizId, onComplete }: QuizTakerProps) {
                 className={`w-full p-4 text-left rounded-lg border transition-all ${
                   isSelected
                     ? 'border-primary bg-primary/10 ring-2 ring-primary/20'
-                    : 'border-gray-200 hover:border-primary/50 hover:bg-muted/50'
+                    : 'border-border hover:border-primary/50 hover:bg-muted/50'
                 }`}
               >
                 <div className="flex items-center gap-3">

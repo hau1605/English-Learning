@@ -8,7 +8,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ============================================
@@ -729,6 +728,79 @@ model QueueJob {
 enum JobStatus {
   PENDING
   PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ============================================
+// CRAWLER SYSTEM
+// ============================================
+
+model CrawlSource {
+  id             String         @id @default(uuid())
+  name           String         @unique
+  url            String
+  sourceType     CrawlSourceType
+  contentType    CrawlContentType
+  requiresBrowser Boolean       @default(false)
+  rateLimit      Float          @default(1.0)
+  headers        Json?
+  isActive       Boolean        @default(true)
+  lastCrawled    DateTime?
+  totalCrawled   Int            @default(0)
+  successRate    Float          @default(0.0)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  logs           CrawlLog[]
+
+  @@index([sourceType])
+  @@index([contentType])
+  @@index([isActive])
+  @@map("crawl_sources")
+}
+
+enum CrawlSourceType {
+  API
+  WEB
+  FILE
+}
+
+enum CrawlContentType {
+  VOCABULARY
+  GRAMMAR
+  QUIZ
+  TOPIC
+}
+
+model CrawlLog {
+  id           String       @id @default(uuid())
+  sourceId     String
+  sourceName   String
+  jobId        String?
+  status       CrawlStatus  @default(PENDING)
+  itemsCrawled Int          @default(0)
+  itemsAdded   Int          @default(0)
+  itemsUpdated Int          @default(0)
+  itemsFailed  Int          @default(0)
+  errorLog     String?      @db.Text
+  startedAt    DateTime
+  completedAt  DateTime?
+  durationMs   Int          @default(0)
+  createdAt    DateTime     @default(now())
+
+  source CrawlSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@index([sourceId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("crawl_logs")
+}
+
+enum CrawlStatus {
+  PENDING
+  IN_PROGRESS
   COMPLETED
   FAILED
   CANCELLED

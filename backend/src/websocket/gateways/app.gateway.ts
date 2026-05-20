@@ -115,7 +115,8 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         userId: payload.sub,
       });
     } catch (error) {
-      this.logger.error(`Connection error: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Connection error: ${message}`);
       client.disconnect();
     }
   }

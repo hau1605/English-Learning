@@ -237,9 +237,9 @@ export default function DashboardPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div className={`flex h-7 w-7 items-center justify-center rounded-full ${
-                      index === 0 ? 'bg-yellow-100 text-yellow-700' :
-                      index === 1 ? 'bg-gray-100 text-gray-700' :
-                      index === 2 ? 'bg-orange-100 text-orange-700' :
+                      index === 0 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
+                      index === 1 ? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300' :
+                      index === 2 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' :
                       'bg-muted'
                     }`}>
                       <span className="text-xs font-bold">#{index + 1}</span>

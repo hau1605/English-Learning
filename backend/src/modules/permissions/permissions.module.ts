@@ -7,11 +7,12 @@ import { PermissionsRepository } from '@/modules/permissions/repositories/permis
 import { PermissionGuard } from '@/modules/permissions/guards/permission.guard';
 import { RolesController } from '@/modules/permissions/controllers/roles.controller';
 import { RolesService } from '@/modules/permissions/services/roles.service';
+import { PermissionsSeeder } from './permissions.seeder';
 
 @Module({
   imports: [PrismaModule, RedisModule],
   controllers: [PermissionsController, RolesController],
-  providers: [PermissionsService, PermissionsRepository, RolesService, PermissionGuard],
+  providers: [PermissionsService, PermissionsRepository, RolesService, PermissionGuard, PermissionsSeeder],
   exports: [PermissionsService, RolesService, PermissionGuard],
 })
 export class PermissionsModule {}

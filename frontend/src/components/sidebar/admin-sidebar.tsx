@@ -131,7 +131,7 @@ export function AdminSidebar({
   if (isLoading) {
     return (
       <aside className="w-64 shrink-0">
-        <div className="flex h-32 items-center justify-center rounded-lg border bg-white p-2">
+        <div className="flex h-32 items-center justify-center rounded-lg border bg-card p-2">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </aside>
@@ -140,7 +140,7 @@ export function AdminSidebar({
 
   return (
     <aside className="w-64 shrink-0">
-      <nav className="sticky top-6 space-y-1 bg-white rounded-lg border p-2">
+      <nav className="sticky top-6 space-y-1 bg-card rounded-lg border p-2">
         {adminItems.map((item) => (
           <AdminMenuItem key={item.id} item={item} />
         ))}

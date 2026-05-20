@@ -34,12 +34,12 @@ const NOTIFICATION_ICONS: Record<string, any> = {
 };
 
 const NOTIFICATION_COLORS: Record<string, string> = {
-  ACHIEVEMENT: 'text-yellow-500 bg-yellow-100',
-  STREAK: 'text-orange-500 bg-orange-100',
-  REMINDER: 'text-blue-500 bg-blue-100',
-  SYSTEM: 'text-gray-500 bg-gray-100',
-  SOCIAL: 'text-purple-500 bg-purple-100',
-  PROMOTION: 'text-green-500 bg-green-100',
+  ACHIEVEMENT: 'text-yellow-500 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30',
+  STREAK: 'text-orange-500 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30',
+  REMINDER: 'text-blue-500 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30',
+  SYSTEM: 'text-muted-foreground bg-muted',
+  SOCIAL: 'text-purple-500 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30',
+  PROMOTION: 'text-green-500 dark:text-green-400 bg-green-100 dark:bg-green-900/30',
 };
 
 interface NotificationItemProps {
@@ -51,7 +51,7 @@ interface NotificationItemProps {
 function NotificationItem({ notification, onMarkAsRead, onDelete }: NotificationItemProps) {
   const type = notification.notification?.type || 'SYSTEM';
   const Icon = NOTIFICATION_ICONS[type] || Bell;
-  const colorClass = NOTIFICATION_COLORS[type] || 'text-gray-500 bg-gray-100';
+  const colorClass = NOTIFICATION_COLORS[type] || 'text-muted-foreground bg-muted';
 
   return (
     <div

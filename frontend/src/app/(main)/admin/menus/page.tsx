@@ -83,14 +83,14 @@ function MenuTreeItem({
 
   return (
     <>
-      <tr className={`border-b ${!item.isActive ? 'bg-gray-50 opacity-60' : ''}`}>
+      <tr className={`border-b ${!item.isActive ? 'bg-muted/50 opacity-60' : ''}`}>
         <td className="py-3 px-4">
           <div className="flex items-center gap-2" style={{ marginLeft: level * 24 }}>
-            <GripVertical className="h-4 w-4 text-gray-400 cursor-grab" />
+            <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
             {hasChildren ? (
               <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="p-1 hover:bg-gray-100 rounded"
+                className="p-1 hover:bg-accent rounded"
               >
                 {isOpen ? (
                   <ChevronDown className="h-4 w-4" />
@@ -104,8 +104,8 @@ function MenuTreeItem({
             <span className="font-medium">{item.label}</span>
           </div>
         </td>
-        <td className="py-3 px-4 text-sm text-gray-500">{item.code}</td>
-        <td className="py-3 px-4 text-sm text-gray-500">{item.path}</td>
+        <td className="py-3 px-4 text-sm text-muted-foreground">{item.code}</td>
+        <td className="py-3 px-4 text-sm text-muted-foreground">{item.path}</td>
         <td className="py-3 px-4">
           <div className="flex gap-1">
             {item.roles.slice(0, 3).map((role) => (
@@ -125,7 +125,7 @@ function MenuTreeItem({
             <button
               onClick={() => onMoveUp(item)}
               disabled={isFirst}
-              className="p-1 hover:bg-gray-100 rounded disabled:opacity-30"
+              className="p-1 hover:bg-accent rounded disabled:opacity-30"
               title="Move up"
             >
               <ChevronUp className="h-4 w-4" />
@@ -133,7 +133,7 @@ function MenuTreeItem({
             <button
               onClick={() => onMoveDown(item, siblings)}
               disabled={isLast}
-              className="p-1 hover:bg-gray-100 rounded disabled:opacity-30"
+              className="p-1 hover:bg-accent rounded disabled:opacity-30"
               title="Move down"
             >
               <ChevronDown className="h-4 w-4" />
@@ -364,11 +364,11 @@ export default function AdminMenusPage() {
         </Button>
       </div>
 
-      <div className="bg-white rounded-lg border">
+      <div className="bg-card rounded-lg border">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b bg-gray-50">
+              <tr className="border-b bg-muted/50">
                 <th className="py-3 px-4 text-left text-sm font-medium">Label</th>
                 <th className="py-3 px-4 text-left text-sm font-medium">Code</th>
                 <th className="py-3 px-4 text-left text-sm font-medium">Path</th>

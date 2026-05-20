@@ -183,12 +183,12 @@ export default function LeaderboardPage() {
               {leaderboardData.slice(3).map((entry: any, index: number) => (
                 <div
                   key={entry.id}
-                  className="flex items-center justify-between p-4 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                  className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex items-center gap-4">
                     {/* Rank */}
-                    <div className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-                      <span className="text-sm font-bold text-gray-600 dark:text-gray-400">
+                    <div className="w-10 h-10 flex items-center justify-center rounded-full bg-muted">
+                      <span className="text-sm font-bold text-muted-foreground">
                         #{index + 4}
                       </span>
                     </div>

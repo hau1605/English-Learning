@@ -59,6 +59,10 @@ export class PermissionsService {
     return this.permissionsRepository.findAll();
   }
 
+  async findByCode(code: string) {
+    return this.permissionsRepository.findByCode(code);
+  }
+
   async createPermission(data: { code: string; description?: string; resource: string; action: string }) {
     return this.permissionsRepository.create(data);
   }

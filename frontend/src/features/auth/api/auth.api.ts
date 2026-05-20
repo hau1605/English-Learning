@@ -15,6 +15,7 @@ export interface AuthResponse {
   accessToken: string;
   expiresIn: number;
   userId: string;
+  emailVerified?: boolean;
 }
 
 export interface UserProfile {
@@ -67,6 +68,21 @@ export const authApi = {
 
   revokeSession: async (sessionId: string): Promise<ApiResponse<void>> => {
     const response = await api.post<ApiResponse<void>>(`/auth/sessions/${sessionId}/revoke`);
+    return response.data;
+  },
+
+  verifyEmail: async (token: string): Promise<ApiResponse<{ success: boolean; message: string }>> => {
+    const response = await api.post<ApiResponse<{ success: boolean; message: string }>>('/auth/verify-email', { token });
+    return response.data;
+  },
+
+  resendVerification: async (email: string): Promise<ApiResponse<{ message: string }>> => {
+    const response = await api.post<ApiResponse<{ message: string }>>('/auth/resend-verification', { email });
+    return response.data;
+  },
+
+  forgotPassword: async (email: string): Promise<ApiResponse<{ message: string }>> => {
+    const response = await api.post<ApiResponse<{ message: string }>>('/auth/forgot-password', { email });
     return response.data;
   },
 };

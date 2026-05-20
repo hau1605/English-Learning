@@ -71,7 +71,7 @@ function MenuItemComponent({ item, level = 0 }: MenuItemComponentProps) {
               'flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors',
               isActive
                 ? 'bg-primary text-primary-foreground'
-                : 'text-gray-700 hover:bg-gray-100',
+                : 'text-foreground hover:bg-accent',
               level > 0 && 'ml-4 text-sm'
             )}
           >
@@ -100,7 +100,7 @@ function MenuItemComponent({ item, level = 0 }: MenuItemComponentProps) {
             'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
             isActive
               ? 'bg-primary text-primary-foreground'
-              : 'text-gray-700 hover:bg-gray-100',
+              : 'text-foreground hover:bg-accent',
             level > 0 && 'ml-4 text-sm'
           )}
         >
@@ -146,7 +146,7 @@ export function DynamicSidebar({
 
   if (isLoading) {
     return (
-      <aside className="hidden w-64 flex-col bg-white lg:flex">
+      <aside className="hidden w-64 flex-col bg-card lg:flex">
         <div className="flex h-16 items-center border-b px-6">
           <span className="text-xl font-bold">Loading...</span>
         </div>
@@ -158,7 +158,7 @@ export function DynamicSidebar({
   }
 
   return (
-    <aside className="hidden w-64 flex-col bg-white lg:flex">
+    <aside className="hidden w-64 flex-col bg-card lg:flex border-r">
       <div className="flex h-16 items-center border-b px-6">
         <Link href="/dashboard" className="flex items-center gap-2">
           <GraduationCap className="h-8 w-8 text-primary" />
@@ -192,12 +192,12 @@ export function DynamicSidebar({
             </div>
             <div className="flex-1">
               <p className="text-sm font-medium">{user?.fullName || 'Loading...'}</p>
-              <p className="text-xs text-gray-500">Level {user?.level || 1}</p>
+              <p className="text-xs text-muted-foreground">Level {user?.level || 1}</p>
             </div>
           </div>
           <div className="mt-4 flex flex-col gap-2">
             <Link href="/settings">
-              <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100">
+              <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent">
                 <Settings className="h-4 w-4" />
                 Settings
               </button>

@@ -33,17 +33,17 @@ export default function QueueJobPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "COMPLETED":
-        return "text-green-600 bg-green-50";
+        return "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20";
       case "FAILED":
-        return "text-red-600 bg-red-50";
+        return "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20";
       case "PROCESSING":
-        return "text-blue-600 bg-blue-50";
+        return "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20";
       case "PENDING":
-        return "text-yellow-600 bg-yellow-50";
+        return "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20";
       case "CANCELLED":
-        return "text-gray-600 bg-gray-50";
+        return "text-muted-foreground bg-muted";
       default:
-        return "text-gray-600 bg-gray-50";
+        return "text-muted-foreground bg-muted";
     }
   };
 
@@ -75,7 +75,7 @@ export default function QueueJobPage() {
           <h1 className="text-3xl font-bold tracking-tight">
             Queue Job Monitor
           </h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-muted-foreground mt-1">
             Track and monitor background job status
           </p>
         </div>
@@ -108,12 +108,12 @@ export default function QueueJobPage() {
 
       {/* Error State */}
       {error && (
-        <Card className="p-6 bg-red-50 border-red-200">
+        <Card className="p-6 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
           <div className="flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600" />
+            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
             <div>
-              <h3 className="font-semibold text-red-900">Error Loading Job</h3>
-              <p className="text-sm text-red-700 mt-1">
+              <h3 className="font-semibold text-red-900 dark:text-red-300">Error Loading Job</h3>
+              <p className="text-sm text-red-700 dark:text-red-400 mt-1">
                 {error instanceof Error
                   ? error.message
                   : "Failed to load job details"}
@@ -145,13 +145,13 @@ export default function QueueJobPage() {
             <h3 className="font-semibold mb-4">Details</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">
                   Job ID
                 </p>
                 <p className="font-mono text-sm break-all">{data.data.id}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">
                   Attempts
                 </p>
                 <p className="font-mono text-sm">
@@ -159,7 +159,7 @@ export default function QueueJobPage() {
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">
                   Created At
                 </p>
                 <p className="font-mono text-sm">
@@ -167,7 +167,7 @@ export default function QueueJobPage() {
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">
                   Updated At
                 </p>
                 <p className="font-mono text-sm">
@@ -176,7 +176,7 @@ export default function QueueJobPage() {
               </div>
               {data.data.processedAt && (
                 <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wider">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">
                     Processed At
                   </p>
                   <p className="font-mono text-sm">
@@ -186,7 +186,7 @@ export default function QueueJobPage() {
               )}
               {data.data.scheduledAt && (
                 <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wider">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">
                     Scheduled At
                   </p>
                   <p className="font-mono text-sm">
@@ -200,16 +200,16 @@ export default function QueueJobPage() {
           {/* Job Data */}
           <Card className="p-6">
             <h3 className="font-semibold mb-4">Job Data</h3>
-            <pre className="bg-gray-50 p-4 rounded text-xs overflow-auto max-h-64 border">
+            <pre className="bg-muted dark:bg-muted/50 p-4 rounded text-xs overflow-auto max-h-64 border">
               {JSON.stringify(data.data.data, null, 2)}
             </pre>
           </Card>
 
           {/* Result (if completed) */}
           {data.data.result && (
-            <Card className="p-6 bg-green-50 border-green-200">
-              <h3 className="font-semibold mb-4 text-green-900">Result</h3>
-              <pre className="bg-white p-4 rounded text-xs overflow-auto max-h-64 border border-green-200">
+            <Card className="p-6 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+              <h3 className="font-semibold mb-4 text-green-900 dark:text-green-300">Result</h3>
+              <pre className="bg-card p-4 rounded text-xs overflow-auto max-h-64 border border-green-200 dark:border-green-800">
                 {JSON.stringify(data.data.result, null, 2)}
               </pre>
             </Card>
@@ -217,9 +217,9 @@ export default function QueueJobPage() {
 
           {/* Error (if failed) */}
           {data.data.error && (
-            <Card className="p-6 bg-red-50 border-red-200">
-              <h3 className="font-semibold mb-4 text-red-900">Error Details</h3>
-              <pre className="bg-white p-4 rounded text-xs overflow-auto max-h-64 border border-red-200 text-red-700">
+            <Card className="p-6 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
+              <h3 className="font-semibold mb-4 text-red-900 dark:text-red-300">Error Details</h3>
+              <pre className="bg-card p-4 rounded text-xs overflow-auto max-h-64 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400">
                 {data.data.error}
               </pre>
             </Card>
@@ -230,11 +230,11 @@ export default function QueueJobPage() {
       {/* Empty State */}
       {!jobId && !isLoading && (
         <Card className="p-12 text-center">
-          <Clock className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-700">
+          <Clock className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold">
             No Job Selected
           </h3>
-          <p className="text-gray-500 mt-2">
+          <p className="text-muted-foreground mt-2">
             Enter a job ID to view its status and details
           </p>
         </Card>
@@ -243,8 +243,8 @@ export default function QueueJobPage() {
       {/* Loading State */}
       {isLoading && (
         <Card className="p-12 text-center">
-          <Loader className="w-12 h-12 text-blue-400 animate-spin mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-700">
+          <Loader className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
+          <h3 className="text-lg font-semibold">
             Loading Job Details...
           </h3>
         </Card>

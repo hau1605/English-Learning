@@ -150,7 +150,7 @@ export default function SpeakingPage() {
             <CardTitle className="text-center">Read Aloud</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="p-6 bg-gray-50 rounded-lg text-center text-xl">
+            <div className="p-6 bg-muted dark:bg-muted/50 rounded-lg text-center text-xl">
               {selectedExercise.textContent}
             </div>
 
@@ -181,7 +181,7 @@ export default function SpeakingPage() {
                 >
                   {isRecording ? (
                     <div className="flex flex-col items-center">
-                      <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
+                  <div className="w-3 h-3 bg-primary rounded-full animate-pulse" />
                       <span className="text-xs mt-1">Stop</span>
                     </div>
                   ) : (
