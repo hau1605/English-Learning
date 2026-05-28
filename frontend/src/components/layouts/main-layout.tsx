@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCurrentUser, useLogout } from '@/features/auth/hooks/use-auth.hook';
+import { useAuthBootstrap } from '@/features/auth/hooks/use-auth-bootstrap.hook';
 import { useAuthStore } from '@/stores/auth.store';
 import { useMenuStore } from '@/stores/menu.store';
 import { DynamicSidebar } from '@/components/sidebar/dynamic-sidebar';
@@ -21,17 +22,25 @@ import {
 export function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { data: user } = useCurrentUser();
+  const { isLoading: authLoading } = useAuthBootstrap({
+    redirectTo: '/login',
+  });
+  const { data: currentUser } = useCurrentUser();
   const logoutMutation = useLogout();
-  const setUser = useAuthStore((state) => state.setUser);
-  const { menuItems, isLoading, fetchMenuForUser } = useMenuStore();
+  const { user, setUser } = useAuthStore();
+  const { menuItems, isLoading, hasLoaded, fetchMenuForUser } = useMenuStore();
 
   useEffect(() => {
-    if (user) {
-      setUser(user);
+    if (currentUser) {
+      setUser(currentUser);
+    }
+  }, [currentUser, setUser]);
+
+  useEffect(() => {
+    if (user && !authLoading && !hasLoaded && !isLoading) {
       fetchMenuForUser();
     }
-  }, [user, setUser, fetchMenuForUser]);
+  }, [user, authLoading, hasLoaded, isLoading, fetchMenuForUser]);
 
   useEffect(() => {
     if (menuItems.length > 0) {
@@ -54,6 +63,14 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
       }
     }
   }, [menuItems, pathname, router]);
+
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-background">

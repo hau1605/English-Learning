@@ -14,10 +14,15 @@ interface UseAuthBootstrapOptions {
 export function useAuthBootstrap(options: UseAuthBootstrapOptions = {}) {
   const { onUnauthenticated, redirectTo } = options;
   const router = useRouter();
-  const { setUser, setIsLoading, isLoading } = useAuthStore();
+  const { user, setUser, setIsLoading, isLoading } = useAuthStore();
 
   useEffect(() => {
     const bootstrap = async () => {
+      if (user && tokenStorage.hasAccessToken()) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const response = await authApi.refreshToken();
         const { accessToken } = response.data;
@@ -39,7 +44,7 @@ export function useAuthBootstrap(options: UseAuthBootstrapOptions = {}) {
     };
 
     bootstrap();
-  }, [onUnauthenticated, redirectTo, router, setUser]);
+  }, [onUnauthenticated, redirectTo, router, setIsLoading, setUser, user]);
 
   return { isLoading };
 }

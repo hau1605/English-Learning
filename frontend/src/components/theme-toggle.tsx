@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useThemeStore, Theme, ResolvedTheme } from '@/stores/theme.store';
 import { Sun, Moon, Monitor } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
@@ -25,6 +26,11 @@ const themeOptions: { value: Theme; label: string; icon: ResolvedTheme | 'system
 
 export function ThemeToggle({ className }: { className?: string }) {
   const { theme, resolvedTheme, setTheme } = useThemeStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <DropdownMenu.Root>
@@ -32,9 +38,12 @@ export function ThemeToggle({ className }: { className?: string }) {
         <Button
           variant="ghost"
           size="icon"
-          className={cn('h-9 w-9 rounded-md', className)}
+          className={cn(
+            'h-9 w-9 rounded-md transition-colors data-[state=open]:bg-accent data-[state=open]:text-accent-foreground data-[state=open]:ring-2 data-[state=open]:ring-ring/30',
+            className
+          )}
         >
-          <ThemeIcon theme={resolvedTheme} className="h-4 w-4" />
+          <ThemeIcon theme={mounted ? resolvedTheme : 'light'} className="h-4 w-4" />
           <span className="sr-only">Toggle theme</span>
         </Button>
       </DropdownMenu.Trigger>

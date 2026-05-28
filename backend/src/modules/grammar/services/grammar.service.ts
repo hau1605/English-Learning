@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { RedisService } from '@/common/redis/redis.service';
-import { CACHE_TTL } from '@/common/constants/cache-keys';
+import { CACHE_KEYS, CACHE_TTL } from '@/common/constants/cache-keys';
 
 @Injectable()
 export class GrammarService {
@@ -11,7 +11,7 @@ export class GrammarService {
   ) {}
 
   async getCategories() {
-    const cacheKey = 'grammar:categories';
+    const cacheKey = CACHE_KEYS.GRAMMAR.CATEGORIES;
 
     const cached = await this.redis.getJson(cacheKey);
     if (cached) {
@@ -33,7 +33,7 @@ export class GrammarService {
   }
 
   async getLessonBySlug(slug: string) {
-    const cacheKey = `grammar:lesson:${slug}`;
+    const cacheKey = CACHE_KEYS.GRAMMAR.LESSON(slug);
 
     const cached = await this.redis.getJson(cacheKey);
     if (cached) {

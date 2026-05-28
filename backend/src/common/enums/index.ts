@@ -84,4 +84,5 @@ export enum EventName {
   SPEAKING_COMPLETED = 'speaking.completed',
   STREAK_UPDATED = 'streak.updated',
   XP_EARNED = 'xp.earned',
+  LEADERBOARD_UPDATED = 'leaderboard.updated',
 }

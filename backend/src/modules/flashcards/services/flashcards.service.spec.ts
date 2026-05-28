@@ -33,6 +33,7 @@ describe("FlashcardsService", () => {
     vocabulary: {
       id: mockVocabularyId,
       topicId: "topic-123",
+      topic: { name: "Greetings", id: "topic-123" },
       word: "Hello",
       pronunciation: "həˈloʊ",
       meaning: "Xin chào",
@@ -63,6 +64,7 @@ describe("FlashcardsService", () => {
     createdAt: new Date(),
     updatedAt: new Date(),
     flashcard: mockFlashcard,
+    vocabulary: mockFlashcard.vocabulary,
   };
 
   beforeEach(async () => {
@@ -88,6 +90,7 @@ describe("FlashcardsService", () => {
       getJson: jest.fn(),
       setJson: jest.fn(),
       del: jest.fn(),
+      delPattern: jest.fn(),
     };
 
     const mockPrismaService = {

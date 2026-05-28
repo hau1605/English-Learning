@@ -1,11 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/utils';
-import { useMenuStore } from '@/stores/menu.store';
-import { useCurrentUser } from '@/features/auth/hooks/use-auth.hook';
 import { useAuthStore } from '@/stores/auth.store';
 import { MenuItem } from '@/features/menu/api/menu.api';
 import {
@@ -123,15 +121,7 @@ export function DynamicSidebar({
   isLoading = false,
   showUserSection = true,
 }: DynamicSidebarProps) {
-  const pathname = usePathname();
-  const { data: user } = useCurrentUser();
-  const setUser = useAuthStore((state) => state.setUser);
-
-  useEffect(() => {
-    if (user) {
-      setUser(user);
-    }
-  }, [user, setUser]);
+  const user = useAuthStore((state) => state.user);
 
   const isAdminSection = (item: MenuItem) => {
     return item.code.startsWith('admin-') || item.path.startsWith('/admin');

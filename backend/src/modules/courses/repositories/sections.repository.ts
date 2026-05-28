@@ -11,6 +11,9 @@ export class SectionsRepository {
       where: { courseId },
       orderBy: { orderIndex: 'asc' },
       include: {
+        course: {
+          select: { id: true, title: true },
+        },
         lessons: {
           orderBy: { orderIndex: 'asc' },
         },
@@ -38,6 +41,14 @@ export class SectionsRepository {
         orderIndex: data.orderIndex ?? 0,
         course: { connect: { id: courseId } },
       },
+      include: {
+        course: {
+          select: { id: true, title: true },
+        },
+        lessons: {
+          orderBy: { orderIndex: 'asc' },
+        },
+      },
     });
   }
 
@@ -45,6 +56,14 @@ export class SectionsRepository {
     return this.prisma.courseSection.update({
       where: { id },
       data,
+      include: {
+        course: {
+          select: { id: true, title: true },
+        },
+        lessons: {
+          orderBy: { orderIndex: 'asc' },
+        },
+      },
     });
   }
 

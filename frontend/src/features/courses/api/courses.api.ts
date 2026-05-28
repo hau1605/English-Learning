@@ -43,6 +43,14 @@ export interface CourseProgress {
   totalLessons: number;
   completedLessons: number;
   progress: number;
+  nextLesson?: {
+    id: string;
+    title: string;
+  };
+  previousLesson?: {
+    id: string;
+    title: string;
+  };
 }
 
 export interface CoursesListResponse {
@@ -94,8 +102,8 @@ export const coursesApi = {
     return response.data;
   },
 
-  getLesson: async (sectionId: string, lessonId: string): Promise<ApiResponse<Lesson>> => {
-    const response = await api.get<ApiResponse<Lesson>>(`/sections/${sectionId}/lessons/${lessonId}`);
+  getLesson: async (courseId: string, lessonId: string): Promise<ApiResponse<Lesson>> => {
+    const response = await api.get<ApiResponse<Lesson>>(`/lessons/${lessonId}`);
     return response.data;
   },
 

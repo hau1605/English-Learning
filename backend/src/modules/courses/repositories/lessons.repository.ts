@@ -9,6 +9,17 @@ export class LessonsRepository {
   async findAllBySection(sectionId: string) {
     return this.prisma.lesson.findMany({
       where: { sectionId },
+      include: {
+        section: {
+          select: {
+            id: true,
+            title: true,
+            course: {
+              select: { id: true, title: true },
+            },
+          },
+        },
+      },
       orderBy: { orderIndex: 'asc' },
     });
   }
@@ -17,7 +28,13 @@ export class LessonsRepository {
     return this.prisma.lesson.findUnique({
       where: { id },
       include: {
-        section: true,
+        section: {
+          include: {
+            course: {
+              select: { id: true, title: true },
+            },
+          },
+        },
       },
     });
   }
@@ -37,6 +54,17 @@ export class LessonsRepository {
         orderIndex: data.orderIndex ?? 0,
         section: { connect: { id: sectionId } },
       },
+      include: {
+        section: {
+          select: {
+            id: true,
+            title: true,
+            course: {
+              select: { id: true, title: true },
+            },
+          },
+        },
+      },
     });
   }
 
@@ -47,6 +75,17 @@ export class LessonsRepository {
     return this.prisma.lesson.update({
       where: { id },
       data,
+      include: {
+        section: {
+          select: {
+            id: true,
+            title: true,
+            course: {
+              select: { id: true, title: true },
+            },
+          },
+        },
+      },
     });
   }
 

@@ -5,21 +5,35 @@ import { useAuthStore } from '@/stores/auth.store';
 import { tokenStorage } from '@/stores/token-storage';
 import { getSocket, disconnectSocket, AppSocket } from '@/lib/socket';
 
-export function useSocket() {
+export interface SocketState {
+  socket: AppSocket | null;
+  isConnected: boolean;
+  connectionError: string | null;
+}
+
+export function useSocket(): SocketState {
   const [socket, setSocket] = useState<AppSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const { user } = useAuthStore();
   const accessToken = tokenStorage.getAccessToken();
 
   useEffect(() => {
     if (user && accessToken) {
+      setConnectionError(null);
       const socketInstance = getSocket(accessToken);
 
       socketInstance.on('connect', () => {
         setIsConnected(true);
+        setConnectionError(null);
       });
 
       socketInstance.on('disconnect', () => {
+        setIsConnected(false);
+      });
+
+      socketInstance.on('connect_error', (error) => {
+        setConnectionError(error.message);
         setIsConnected(false);
       });
 
@@ -28,15 +42,17 @@ export function useSocket() {
       return () => {
         socketInstance.off('connect');
         socketInstance.off('disconnect');
+        socketInstance.off('connect_error');
       };
     } else {
       disconnectSocket();
       setSocket(null);
       setIsConnected(false);
+      setConnectionError(null);
     }
   }, [user, accessToken]);
 
-  return { socket, isConnected };
+  return { socket, isConnected, connectionError };
 }
 
 // ========== LEADERBOARD ==========
@@ -92,7 +108,7 @@ export function useSpeakingResultSocket(
   onResult?: (data: {
     attemptId: string;
     score: number;
-    feedback: string;
+    xpEarned: number;
   }) => void,
 ) {
   const { socket, isConnected } = useSocket();

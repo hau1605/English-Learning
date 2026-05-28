@@ -1,11 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -18,28 +15,26 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { sectionAdminApi, Section, CreateSectionDto, UpdateSectionDto } from "@/features/admin/api/section-admin.api";
 import {
-  Search,
-  Plus,
-  Edit2,
-  Trash2,
-  ChevronLeft,
-  ChevronRight,
-  BookOpen,
-  GripVertical,
-} from "lucide-react";
+  sectionAdminApi,
+  Section,
+  CreateSectionDto,
+  UpdateSectionDto,
+} from "@/features/admin/api/section-admin.api";
+import { Plus, Search } from "lucide-react";
 import { toast } from "sonner";
-import Link from "next/link";
+import { AdminDataTable } from "@/components/admin/admin-data-table";
+
+const sectionCode = (item: Section, index: number) =>
+  `SEC-${item.id.replace(/[^a-zA-Z0-9]/g, "").slice(-4).toUpperCase() || String(index + 1).padStart(3, "0")}`;
 
 export default function AdminSectionsPage() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const [limit, setLimit] = useState(10);
+  const [courseId, setCourseId] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSection, setEditingSection] = useState<Section | null>(null);
-  const [courseId, setCourseId] = useState("");
-
   const [form, setForm] = useState<CreateSectionDto>({
     courseId: "",
     title: "",
@@ -48,9 +43,13 @@ export default function AdminSectionsPage() {
   });
 
   const { data: sections, isLoading } = useQuery({
-    queryKey: ["admin", "sections", "list", { page, search }],
-    queryFn: () => sectionAdminApi.getSections({ page, limit: 20 }),
-    enabled: !!courseId,
+    queryKey: ["admin", "sections", "list", { page, limit, courseId }],
+    queryFn: () =>
+      sectionAdminApi.getSections({
+        page,
+        limit,
+        courseId: courseId || undefined,
+      }),
   });
 
   const createMutation = useMutation({
@@ -113,238 +112,118 @@ export default function AdminSectionsPage() {
   };
 
   const handleSubmit = () => {
-    if (!form.courseId) {
-      toast.error("Please enter a course ID");
+    if (!form.courseId.trim()) {
+      toast.error("Please enter courseId");
       return;
     }
     if (!form.title.trim()) {
-      toast.error("Please enter a section title");
+      toast.error("Please enter title");
       return;
     }
 
     if (editingSection) {
-      updateMutation.mutate({ id: editingSection.id, data: form });
+      updateMutation.mutate({
+        id: editingSection.id,
+        data: {
+          title: form.title,
+          description: form.description,
+          orderIndex: form.orderIndex,
+        },
+      });
     } else {
       createMutation.mutate(form);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Section Management</h1>
-          <p className="text-muted-foreground">
-            Create and manage course sections
-          </p>
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Section
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>
-                {editingSection ? "Edit Section" : "Create New Section"}
-              </DialogTitle>
-              <DialogDescription>
-                {editingSection
-                  ? "Update the section details"
-                  : "Create a new section for your course"}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="courseId">Course ID</Label>
-                <Input
-                  id="courseId"
-                  value={form.courseId}
-                  onChange={(e) => setForm((prev) => ({ ...prev, courseId: e.target.value }))}
-                  placeholder="Enter course ID"
-                  disabled={!!editingSection}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  value={form.title}
-                  onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-                  placeholder="e.g., Chapter 1: Introduction"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, description: e.target.value }))
-                  }
-                  placeholder="Brief description of this section..."
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="orderIndex">Order Index</Label>
-                <Input
-                  id="orderIndex"
-                  type="number"
-                  min={0}
-                  value={form.orderIndex}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, orderIndex: parseInt(e.target.value) || 0 }))
-                  }
-                  placeholder="0"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsDialogOpen(false);
-                  setEditingSection(null);
-                  resetForm();
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                disabled={createMutation.isPending || updateMutation.isPending}
-              >
-                {editingSection ? "Update" : "Create"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col gap-4 md:flex-row">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search sections..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
-            </div>
+    <AdminDataTable
+      title="Quan ly sections"
+      data={sections?.data || []}
+      isLoading={isLoading}
+      total={sections?.meta?.total || 0}
+      page={page}
+      pageSize={limit}
+      totalPages={sections?.meta?.totalPages || 1}
+      onPageChange={setPage}
+      onPageSizeChange={(nextLimit) => {
+        setPage(1);
+        setLimit(nextLimit);
+      }}
+      getCode={sectionCode}
+      getTitle={(item) => item.title}
+      minWidth={1050}
+      columns={[
+        { key: "course", header: "Course", render: (item) => item.course?.title || item.courseId, className: "max-w-[180px] truncate" },
+        { key: "title", header: "Title", render: (item) => item.title, className: "min-w-[220px]" },
+        { key: "description", header: "Description", render: (item) => item.description || "---", className: "max-w-[280px] truncate" },
+        { key: "orderIndex", header: "Order index", render: (item) => item.orderIndex },
+        { key: "createdAt", header: "Created at", render: (item) => new Date(item.createdAt).toLocaleDateString("vi-VN") },
+        { key: "updatedAt", header: "Updated at", render: (item) => new Date(item.updatedAt).toLocaleDateString("vi-VN") },
+      ]}
+      detailFields={[
+        { label: "ID", render: (item) => item.id },
+        { label: "Course", render: (item) => item.course?.title || item.courseId },
+        { label: "Title", render: (item) => item.title },
+        { label: "Description", render: (item) => item.description },
+        { label: "Order index", render: (item) => item.orderIndex },
+        { label: "Created at", render: (item) => new Date(item.createdAt).toLocaleString("vi-VN") },
+        { label: "Updated at", render: (item) => new Date(item.updatedAt).toLocaleString("vi-VN") },
+      ]}
+      toolbar={
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+          <div className="relative">
             <Input
-              placeholder="Filter by Course ID..."
               value={courseId}
-              onChange={(e) => setCourseId(e.target.value)}
-              className="w-full md:w-[250px]"
+              onChange={(event) => { setPage(1); setCourseId(event.target.value); }}
+              className="h-9 w-full rounded border-slate-200 bg-white pr-9 text-xs shadow-none dark:border-border dark:bg-background lg:w-[300px]"
+              placeholder="Loc theo course..."
             />
+            <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Sections List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Sections ({sections?.meta?.total || 0})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-20" />
-              ))}
-            </div>
-          ) : (
-            <>
-              <div className="space-y-4">
-                {sections?.data?.map((section) => (
-                  <div
-                    key={section.id}
-                    className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium">{section.title}</h3>
-                        <Badge variant="secondary">Order: {section.orderIndex}</Badge>
-                      </div>
-                      {section.description && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {section.description}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <BookOpen className="h-4 w-4" />
-                          {section.lessons?.length || 0} lessons
-                        </span>
-                        <span>Course ID: {section.courseId}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/admin/sections/${section.id}/lessons`}>
-                          Manage Lessons
-                        </Link>
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(section)}>
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          if (confirm("Are you sure you want to delete this section?")) {
-                            deleteMutation.mutate(section.id);
-                          }
-                        }}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Pagination */}
-              <div className="mt-6 flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Showing {(sections?.meta?.page ?? 1) * (sections?.meta?.limit ?? 20) - (sections?.meta?.limit ?? 20) + 1} - {Math.min((sections?.meta?.page ?? 1) * (sections?.meta?.limit ?? 20), sections?.meta?.total ?? 0)} of {sections?.meta?.total ?? 0} sections (Page {page} of {sections?.meta?.totalPages || 1})
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => p + 1)}
-                    disabled={page >= (sections?.meta?.totalPages || 1)}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="h-9 gap-2 rounded bg-blue-700 px-3 text-xs hover:bg-blue-800">
+                <Plus className="h-4 w-4" />
+                Them moi
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[520px]">
+              <DialogHeader>
+                <DialogTitle>{editingSection ? "Edit Section" : "Create Section"}</DialogTitle>
+                <DialogDescription>Cap nhat du lieu dung cac cot trong bang course_sections.</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label>Course</Label>
+                  <Input value={form.courseId} disabled={!!editingSection} onChange={(event) => setForm((prev) => ({ ...prev, courseId: event.target.value }))} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Title</Label>
+                  <Input value={form.title} onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Description</Label>
+                  <Textarea value={form.description || ""} onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Order index</Label>
+                  <Input type="number" value={form.orderIndex || 0} onChange={(event) => setForm((prev) => ({ ...prev, orderIndex: parseInt(event.target.value) || 0 }))} />
                 </div>
               </div>
-
-              {(!sections?.data || sections.data.length === 0) && (
-                <div className="text-center py-8 text-muted-foreground">
-                  {courseId ? "No sections found" : "Enter a Course ID to view sections"}
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => { setIsDialogOpen(false); setEditingSection(null); resetForm(); }}>Huy</Button>
+                <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
+                  {editingSection ? "Cap nhat" : "Tao moi"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      }
+      onEdit={openEdit}
+      onDelete={(item) => {
+        if (confirm("Xoa section nay?")) deleteMutation.mutate(item.id);
+      }}
+    />
   );
 }

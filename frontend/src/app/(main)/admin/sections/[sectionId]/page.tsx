@@ -137,7 +137,7 @@ export default function AdminSectionDetailPage() {
                   <Badge variant="secondary">Order: {section?.data?.orderIndex}</Badge>
                 </div>
                 <p className="text-muted-foreground mt-1">
-                  Course ID: {section?.data?.courseId}
+                  Course: {section?.data?.course?.title || section?.data?.courseId}
                 </p>
               </>
             )}

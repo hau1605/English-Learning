@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { RedisService } from '@/common/redis/redis.service';
-import { CACHE_TTL } from '@/common/constants/cache-keys';
+import { CACHE_KEYS, CACHE_TTL } from '@/common/constants/cache-keys';
 import { LeaderboardPeriod } from '../dto/leaderboard.dto';
 
 export interface LeaderboardUser {
@@ -24,7 +24,7 @@ export class LeaderboardRepository {
   ) {}
 
   async getGlobalLeaderboard(limit: number = 100): Promise<LeaderboardUser[]> {
-    const cacheKey = `leaderboard:global:${limit}`;
+    const cacheKey = CACHE_KEYS.LEADERBOARD.GLOBAL_LIMIT(limit);
 
     const cached = await this.redis.getJson<LeaderboardUser[]>(cacheKey);
     if (cached) {
@@ -65,7 +65,7 @@ export class LeaderboardRepository {
   }
 
   async getWeeklyLeaderboard(limit: number = 100): Promise<LeaderboardUser[]> {
-    const cacheKey = `leaderboard:weekly:${limit}`;
+    const cacheKey = CACHE_KEYS.LEADERBOARD.WEEKLY_LIMIT(limit);
 
     const cached = await this.redis.getJson<LeaderboardUser[]>(cacheKey);
     if (cached) {
@@ -128,7 +128,7 @@ export class LeaderboardRepository {
   }
 
   async getMonthlyLeaderboard(limit: number = 100): Promise<LeaderboardUser[]> {
-    const cacheKey = `leaderboard:monthly:${limit}`;
+    const cacheKey = CACHE_KEYS.LEADERBOARD.MONTHLY_LIMIT(limit);
 
     const cached = await this.redis.getJson<LeaderboardUser[]>(cacheKey);
     if (cached) {
@@ -191,7 +191,7 @@ export class LeaderboardRepository {
   }
 
   async getUserRank(userId: string): Promise<{ rank: number; xp: number; level: number; totalUsers: number } | null> {
-    const cacheKey = `leaderboard:user:${userId}`;
+    const cacheKey = CACHE_KEYS.LEADERBOARD.USER(userId);
 
     const cached = await this.redis.getJson<{ rank: number; xp: number; level: number; totalUsers: number }>(cacheKey);
     if (cached) {
@@ -241,8 +241,8 @@ export class LeaderboardRepository {
       },
     });
 
-    await this.redis.del(`leaderboard:user:${userId}`);
-    await this.redis.del('leaderboard:global:100');
-    await this.redis.del('leaderboard:weekly:100');
+    await this.redis.del(CACHE_KEYS.LEADERBOARD.USER(userId));
+    await this.redis.del(CACHE_KEYS.LEADERBOARD.GLOBAL_LIMIT(100));
+    await this.redis.del(CACHE_KEYS.LEADERBOARD.WEEKLY_LIMIT(100));
   }
 }

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
 import { PrismaService } from '@/prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { CACHE_KEYS } from '@/common/constants/cache-keys';
 import { RedisService } from '@/common/redis/redis.service';
 
 @Injectable()
@@ -80,7 +81,7 @@ export class StreakScheduler {
       const todayLearners = await this.getTodayLearners();
 
       for (const userId of todayLearners) {
-        const cacheKey = `streak:updated:${userId}:${today.toISOString().split('T')[0]}`;
+        const cacheKey = CACHE_KEYS.STREAK.UPDATED(userId, today.toISOString().split('T')[0]);
         const alreadyUpdated = await this.redis.get(cacheKey);
 
         if (!alreadyUpdated) {
@@ -95,7 +96,7 @@ export class StreakScheduler {
               data: { streakDays: newStreak },
             });
 
-            await this.redis.set(cacheKey, '1'); // Expire in 24 hours
+            await this.redis.setex(cacheKey, 86400, '1'); // Expire in 24 hours
 
             this.eventEmitter.emit('streak.updated', {
               userId,

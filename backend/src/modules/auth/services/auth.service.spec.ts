@@ -4,6 +4,7 @@ import { PrismaService } from "@/prisma/prisma.service";
 import { JwtService } from "@nestjs/jwt";
 import { RedisService } from "@/common/redis/redis.service";
 import { ConfigService } from "@nestjs/config";
+import { VerificationService } from "@/modules/verification/verification.service";
 import { hashPassword, verifyPassword } from "@/common/utils";
 
 jest.mock("@/common/utils", () => ({
@@ -56,6 +57,13 @@ describe("AuthService", () => {
     }),
   } as any;
 
+  const verificationService = {
+    sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
+    sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
+    verifyToken: jest.fn().mockResolvedValue({ valid: true }),
+    createVerificationToken: jest.fn().mockReturnValue("verification-token"),
+  } as any;
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -66,6 +74,7 @@ describe("AuthService", () => {
         { provide: JwtService, useValue: jwt },
         { provide: RedisService, useValue: redis },
         { provide: ConfigService, useValue: config },
+        { provide: VerificationService, useValue: verificationService },
       ],
     }).compile();
 

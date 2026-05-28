@@ -11,7 +11,7 @@ import { BookOpen, Brain, GraduationCap, ScrollText, Trophy, TrendingUp, Chevron
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { flashcardsApi } from '@/features/flashcards/api/flashcards.api';
-import { analyticsApi } from '@/features/analytics/api/analytics.api';
+import { analyticsApi, type LeaderboardEntry } from '@/features/analytics/api/analytics.api';
 import {
   StreakCalendar,
   AchievementsShowcase,
@@ -230,9 +230,9 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {leaderboard?.data?.slice(0, 5).map((entry: any, index: number) => (
+              {leaderboard?.data?.slice(0, 5).map((entry: LeaderboardEntry, index: number) => (
                 <div
-                  key={entry.id}
+                  key={entry.rank}
                   className="flex items-center justify-between rounded-lg border p-2"
                 >
                   <div className="flex items-center gap-3">

@@ -17,7 +17,12 @@ export const CACHE_KEYS = {
   },
   LEADERBOARD: {
     GLOBAL: 'leaderboard:global',
+    GLOBAL_LIMIT: (limit: number) => `leaderboard:global:${limit}`,
     WEEKLY: 'leaderboard:weekly',
+    WEEKLY_LIMIT: (limit: number) => `leaderboard:weekly:${limit}`,
+    MONTHLY: 'leaderboard:monthly',
+    MONTHLY_LIMIT: (limit: number) => `leaderboard:monthly:${limit}`,
+    USER: (userId: string) => `leaderboard:user:${userId}`,
   },
   RATE_LIMIT: {
     LOGIN: (ip: string) => `rate_limit:login:${ip}`,
@@ -26,6 +31,22 @@ export const CACHE_KEYS = {
   MENU: {
     ALL: 'menu:all',
     USER: (roleCodes: string[]) => `menu:user:${[...roleCodes].sort().join(',')}`,
+  },
+  GRAMMAR: {
+    CATEGORIES: 'grammar:categories',
+    LESSON: (slug: string) => `grammar:lesson:${slug}`,
+  },
+  ANALYTICS: {
+    USER: (userId: string) => `analytics:user:${userId}`,
+  },
+  PROGRESS: {
+    USER: (userId: string) => `progress:${userId}`,
+  },
+  ADMIN: {
+    DASHBOARD_STATS: 'admin:dashboard:stats',
+  },
+  STREAK: {
+    UPDATED: (userId: string, date: string) => `streak:updated:${userId}:${date}`,
   },
 } as const;
 

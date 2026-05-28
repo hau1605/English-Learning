@@ -3,7 +3,7 @@ import { FlashcardsRepository } from "@/modules/flashcards/repositories/flashcar
 import { UsersService } from "@/modules/users/services/users.service";
 import { VocabularyService } from "@/modules/vocabulary/services/vocabulary.service";
 import { RedisService } from "@/common/redis/redis.service";
-import { CACHE_KEYS } from "@/common/constants/cache-keys";
+import { CACHE_KEYS, CACHE_TTL } from "@/common/constants/cache-keys";
 import { calculateSpacedRepetition } from "@/common/utils";
 import { FlashcardRating, EventName } from "@/common/enums";
 import { ReviewFlashcardDto } from "@/modules/flashcards/dto/review-flashcard.dto";
@@ -24,17 +24,24 @@ export class FlashcardsService {
     private readonly pointsService: PointsService,
   ) {}
 
+  private async invalidateAllFlashcardCaches() {
+    await Promise.all([
+      this.redis.delPattern("flashcards:due:*"),
+      this.redis.delPattern("flashcards:stats:*"),
+    ]);
+  }
+
   async getDueCards(userId: string, limit: number = 20) {
     const cacheKey = CACHE_KEYS.FLASHCARD.DUE(userId);
 
     const cached = await this.redis.getJson(cacheKey);
-    if (cached) {
+    if (cached && (!Array.isArray(cached) || cached.length > 0)) {
       return cached;
     }
 
     const cards = await this.flashcardsRepository.getDueCards(userId, limit);
 
-    await this.redis.setJson(cacheKey, cards, 60);
+    await this.redis.setJson(cacheKey, cards, CACHE_TTL.SHORT);
 
     return cards;
   }
@@ -168,7 +175,7 @@ export class FlashcardsService {
 
     const stats = await this.flashcardsRepository.getStats(userId);
 
-    await this.redis.setJson(cacheKey, stats, 300);
+    await this.redis.setJson(cacheKey, stats, CACHE_TTL.MEDIUM);
 
     return stats;
   }
@@ -186,7 +193,9 @@ export class FlashcardsService {
         `Vocabulary with ID "${dto.vocabularyId}" not found`,
       );
     }
-    return this.flashcardsRepository.create(dto);
+    const flashcard = await this.flashcardsRepository.create(dto);
+    await this.invalidateAllFlashcardCaches();
+    return flashcard;
   }
 
   async resetProgress(userId: string, flashcardId?: string) {
@@ -238,7 +247,9 @@ export class FlashcardsService {
     if (!flashcard) {
       throw new NotFoundException("Flashcard not found");
     }
-    return this.flashcardsRepository.update(id, data);
+    const updatedFlashcard = await this.flashcardsRepository.update(id, data);
+    await this.invalidateAllFlashcardCaches();
+    return updatedFlashcard;
   }
 
   async deleteFlashcard(id: string) {
@@ -246,7 +257,9 @@ export class FlashcardsService {
     if (!flashcard) {
       throw new NotFoundException("Flashcard not found");
     }
-    return this.flashcardsRepository.delete(id);
+    const deletedFlashcard = await this.flashcardsRepository.delete(id);
+    await this.invalidateAllFlashcardCaches();
+    return deletedFlashcard;
   }
 
   async createBulkFlashcards(
@@ -276,10 +289,14 @@ export class FlashcardsService {
       );
     }
 
-    return this.flashcardsRepository.createBulk(dto);
+    const result = await this.flashcardsRepository.createBulk(dto);
+    await this.invalidateAllFlashcardCaches();
+    return result;
   }
 
   async generateFlashcardFromVocabulary(vocabularyId: string) {
-    return this.flashcardsRepository.generateFromVocabulary(vocabularyId);
+    const flashcard = await this.flashcardsRepository.generateFromVocabulary(vocabularyId);
+    await this.invalidateAllFlashcardCaches();
+    return flashcard;
   }
 }

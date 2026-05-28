@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { authApi } from '@/features/auth/api/auth.api';
@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { tokenStorage } from '@/stores/token-storage';
 import { toast } from 'sonner';
 
-export default function GoogleCallbackPage() {
+function GoogleCallbackContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const setUser = useAuthStore((state) => state.setUser);
@@ -49,5 +49,24 @@ export default function GoogleCallbackPage() {
         <p className="mt-4 text-muted-foreground">Completing Google sign in...</p>
       </div>
     </div>
+  );
+}
+
+export default function GoogleCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+            <p className="mt-4 text-muted-foreground">
+              Completing Google sign in...
+            </p>
+          </div>
+        </div>
+      }
+    >
+      <GoogleCallbackContent />
+    </Suspense>
   );
 }

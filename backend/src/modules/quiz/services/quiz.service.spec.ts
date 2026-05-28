@@ -23,6 +23,7 @@ describe("QuizService", () => {
   const mockQuiz = {
     id: mockQuizId,
     lessonId: "lesson-123",
+    lesson: { id: "lesson-123", title: "Test Lesson" },
     title: "Test Quiz",
     description: "Test Description",
     type: QuizType.MULTIPLE_CHOICE,

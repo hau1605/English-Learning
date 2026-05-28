@@ -5,6 +5,7 @@ import { NotificationsService } from '@/modules/notifications/services/notificat
 import { QueueService } from '@/queues/queue.service';
 import { EmailService } from '@/modules/email/services/email.service';
 import { UsersService } from '@/modules/users/services/users.service';
+import { EventName } from '@/common/enums';
 
 @Injectable()
 export class EventHandler {
@@ -18,7 +19,7 @@ export class EventHandler {
 
   // ========== XP & STREAK EVENTS ==========
 
-  @OnEvent('xp.earned')
+  @OnEvent(EventName.XP_EARNED)
   async handleXpEarned(payload: { userId: string; xp: number; source: string }) {
     // Emit to user via WebSocket
     this.appGateway.emitToUser(payload.userId, 'xp:update', {
@@ -27,7 +28,7 @@ export class EventHandler {
     });
   }
 
-  @OnEvent('streak.updated')
+  @OnEvent(EventName.STREAK_UPDATED)
   async handleStreakUpdated(payload: { userId: string; streakDays: number }) {
     // Emit to user via WebSocket
     this.appGateway.emitToUser(payload.userId, 'streak:update', {
@@ -47,7 +48,7 @@ export class EventHandler {
 
   // ========== LEADERBOARD EVENTS ==========
 
-  @OnEvent('leaderboard.updated')
+  @OnEvent(EventName.LEADERBOARD_UPDATED)
   async handleLeaderboardUpdated(payload: { rankings: any[] }) {
     // Broadcast to all connected clients
     this.appGateway.emitLeaderboardUpdate(payload.rankings);
@@ -55,7 +56,7 @@ export class EventHandler {
 
   // ========== QUIZ EVENTS ==========
 
-  @OnEvent('quiz.completed')
+  @OnEvent(EventName.QUIZ_COMPLETED)
   async handleQuizCompleted(payload: { userId: string; quizId: string; score: number; xpEarned: number }) {
     // Emit result via WebSocket
     this.appGateway.emitToUser(payload.userId, 'quiz:result', {
@@ -74,7 +75,7 @@ export class EventHandler {
 
   // ========== FLASHCARD EVENTS ==========
 
-  @OnEvent('flashcard.reviewed')
+  @OnEvent(EventName.FLASHCARD_REVIEWED)
   async handleFlashcardReviewed(payload: { userId: string; flashcardId: string; rating: number; xpEarned: number }) {
     // Emit XP update
     if (payload.xpEarned > 0) {
@@ -87,7 +88,7 @@ export class EventHandler {
 
   // ========== SPEAKING EVENTS ==========
 
-  @OnEvent('speaking.completed')
+  @OnEvent(EventName.SPEAKING_COMPLETED)
   async handleSpeakingCompleted(payload: { userId: string; attemptId: string; score: number; xpEarned: number }) {
     // Emit result via WebSocket
     this.appGateway.emitToUser(payload.userId, 'speaking:result', {
@@ -106,12 +107,12 @@ export class EventHandler {
 
   // ========== LESSON EVENTS ==========
 
-  @OnEvent('lesson.started')
+  @OnEvent(EventName.LESSON_STARTED)
   async handleLessonStarted(payload: { userId: string; lessonId: string }) {
     // Track analytics - handled by analytics service
   }
 
-  @OnEvent('lesson.completed')
+  @OnEvent(EventName.LESSON_COMPLETED)
   async handleLessonCompleted(payload: { userId: string; lessonId: string }) {
     // Emit to user
     this.appGateway.emitToUser(payload.userId, 'lesson:completed', {
@@ -128,7 +129,7 @@ export class EventHandler {
 
   // ========== USER EVENTS ==========
 
-  @OnEvent('user.registered')
+  @OnEvent(EventName.USER_REGISTERED)
   async handleUserRegistered(payload: { userId: string; email: string }) {
     // Send welcome email
     const user = await this.usersService.findById(payload.userId);
@@ -141,7 +142,7 @@ export class EventHandler {
     }
   }
 
-  @OnEvent('user.logged_in')
+  @OnEvent(EventName.USER_LOGGED_IN)
   async handleUserLoggedIn(payload: { userId: string; method: string }) {
     // Could track analytics here
   }

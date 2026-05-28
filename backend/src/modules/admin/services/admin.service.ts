@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { RolesService } from '@/modules/permissions/services/roles.service';
 import { RedisService } from '@/common/redis/redis.service';
+import { CACHE_KEYS, CACHE_TTL } from '@/common/constants/cache-keys';
 
 export interface PaginationMeta {
   total: number;
@@ -26,6 +27,13 @@ export class AdminService {
   // ========== DASHBOARD ==========
 
   async getDashboardStats() {
+    const cacheKey = CACHE_KEYS.ADMIN.DASHBOARD_STATS;
+
+    const cached = await this.redis.getJson(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const [
       totalUsers,
       activeUsers,
@@ -40,13 +48,20 @@ export class AdminService {
       this.prisma.vocabulary.count(),
     ]);
 
-    return {
+    const result = {
       totalUsers,
       activeUsers,
       totalFlashcards,
       totalQuizzes,
       totalVocabulary,
     };
+
+    await this.redis.setJson(cacheKey, result, CACHE_TTL.MEDIUM);
+    return result;
+  }
+
+  async invalidateDashboardCache(): Promise<void> {
+    await this.redis.del(CACHE_KEYS.ADMIN.DASHBOARD_STATS);
   }
 
   async getRecentActivity(limit: number = 20) {
@@ -139,7 +154,7 @@ export class AdminService {
     });
 
     if (!role) {
-      throw new Error('Role not found');
+      throw new NotFoundException(`Role "${roleCode}" not found`);
     }
 
     return this.rolesService.assignRoleToUser(userId, role.id);
@@ -151,31 +166,43 @@ export class AdminService {
     });
 
     if (!role) {
-      throw new Error('Role not found');
+      throw new NotFoundException(`Role "${roleCode}" not found`);
     }
 
     return this.rolesService.removeRoleFromUser(userId, role.id);
   }
 
   async suspendUser(userId: string) {
-    return this.prisma.user.update({
+    const result = await this.prisma.user.update({
       where: { id: userId },
       data: { status: 'SUSPENDED' },
     });
+    await this.invalidateUserCache(userId);
+    return result;
   }
 
   async activateUser(userId: string) {
-    return this.prisma.user.update({
+    const result = await this.prisma.user.update({
       where: { id: userId },
       data: { status: 'ACTIVE' },
     });
+    await this.invalidateUserCache(userId);
+    return result;
   }
 
   async deleteUser(userId: string) {
-    return this.prisma.user.update({
+    const result = await this.prisma.user.update({
       where: { id: userId },
       data: { deletedAt: new Date() },
     });
+    await this.invalidateUserCache(userId);
+    return result;
+  }
+
+  private async invalidateUserCache(userId: string): Promise<void> {
+    await this.redis.del(CACHE_KEYS.USER.PROFILE(userId));
+    await this.redis.del(CACHE_KEYS.USER.PERMISSIONS(userId));
+    await this.invalidateDashboardCache();
   }
 
   // ========== REPORTS ==========
@@ -245,7 +272,7 @@ export class AdminService {
     endDate?: string;
   }) {
     const { startDate, endDate } = params;
-    
+
     const start = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const end = endDate ? new Date(endDate) : new Date();
 
@@ -279,18 +306,18 @@ export class AdminService {
       }),
     ]);
 
-    const quizDetails = await Promise.all(
-      quizStats.map(async (stat) => {
-        const quiz = await this.prisma.quiz.findUnique({
-          where: { id: stat.quizId },
-          select: { title: true, type: true, passingScore: true },
-        });
-        return {
-          ...stat,
-          quiz,
-        };
-      })
-    );
+    // Fix N+1: Fetch all quiz details in one query
+    const quizIds = quizStats.map((stat) => stat.quizId);
+    const quizzes = await this.prisma.quiz.findMany({
+      where: { id: { in: quizIds } },
+      select: { id: true, title: true, type: true, passingScore: true },
+    });
+    const quizMap = new Map(quizzes.map((q) => [q.id, q]));
+
+    const quizDetails = quizStats.map((stat) => ({
+      ...stat,
+      quiz: quizMap.get(stat.quizId),
+    }));
 
     const overallStats = {
       totalAttempts: attempts.length,
@@ -394,27 +421,44 @@ export class AdminService {
   // ========== SETTINGS ==========
 
   async getSystemSettings() {
-    const settings = await this.prisma.systemSetting.findMany();
-    const result: Record<string, any> = {};
-    
-    for (const setting of settings) {
-      try {
-        result[setting.key] = JSON.parse(setting.value);
-      } catch {
-        result[setting.key] = setting.value;
-      }
-    }
-    
-    return result;
+    return this.prisma.systemSetting.findMany({
+      orderBy: [{ category: 'asc' }, { key: 'asc' }],
+    });
   }
 
-  async updateSystemSetting(key: string, value: any) {
-    const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+  async updateSystemSetting(
+    key: string,
+    data:
+      | any
+      | {
+          value: any;
+          type?: string;
+          category?: string;
+          isPublic?: boolean;
+        },
+  ) {
+    const input =
+      data && typeof data === 'object' && 'value' in data
+        ? data
+        : { value: data };
+    const stringValue =
+      typeof input.value === 'string' ? input.value : JSON.stringify(input.value);
+    const metadata = {
+      ...(input.type ? { type: input.type } : {}),
+      ...(input.category ? { category: input.category } : {}),
+      ...(typeof input.isPublic === 'boolean' ? { isPublic: input.isPublic } : {}),
+    };
     
     return this.prisma.systemSetting.upsert({
       where: { key },
-      create: { key, value: stringValue },
-      update: { value: stringValue },
+      create: { key, value: stringValue, ...metadata },
+      update: { value: stringValue, ...metadata },
+    });
+  }
+
+  async deleteSystemSetting(key: string) {
+    return this.prisma.systemSetting.delete({
+      where: { key },
     });
   }
 

@@ -4,6 +4,7 @@ import { LeaderboardRepository } from "@/modules/leaderboard/repositories/leader
 import { EventService } from "@/modules/events/services/event.service";
 import type { Prisma } from "@prisma/client";
 import { RedisService } from "@/common/redis/redis.service";
+import { CACHE_KEYS } from "@/common/constants/cache-keys";
 import { getTotalXpForLevel } from "@/modules/progress/constants/achievements";
 
 @Injectable()
@@ -93,7 +94,7 @@ export class PointsService {
 
   private async invalidateProgressCache(userId: string): Promise<void> {
     try {
-      await this.redis.del(`progress:${userId}`);
+      await this.redis.del(CACHE_KEYS.PROGRESS.USER(userId));
     } catch (err) {
       this.logger.warn(
         `Failed to invalidate progress cache for user ${userId}: ${err}`,

@@ -4,30 +4,16 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { VocabularyRepository } from "@/modules/vocabulary/repositories/vocabulary.repository";
-import { RedisService } from "@/common/redis/redis.service";
-import { CACHE_KEYS, CACHE_TTL } from "@/common/constants/cache-keys";
 import * as XLSX from "xlsx";
 
 @Injectable()
 export class VocabularyService {
   constructor(
     private readonly vocabularyRepository: VocabularyRepository,
-    private readonly redis: RedisService,
   ) {}
 
   async getTopics() {
-    const cacheKey = CACHE_KEYS.VOCABULARY.TOPICS;
-
-    const cached = await this.redis.getJson(cacheKey);
-    if (cached) {
-      return cached;
-    }
-
-    const topics = await this.vocabularyRepository.findAllTopics();
-
-    await this.redis.setJson(cacheKey, topics, CACHE_TTL.EXTRA_LONG);
-
-    return topics;
+    return this.vocabularyRepository.findAllTopics();
   }
 
   async getTopicsAdmin() {
@@ -35,18 +21,7 @@ export class VocabularyService {
   }
 
   async getTopicBySlug(slug: string) {
-    const cacheKey = CACHE_KEYS.VOCABULARY.TOPIC(slug);
-
-    const cached = await this.redis.getJson(cacheKey);
-    if (cached) {
-      return cached;
-    }
-
-    const topic = await this.vocabularyRepository.findTopicBySlug(slug);
-
-    await this.redis.setJson(cacheKey, topic, CACHE_TTL.LONG);
-
-    return topic;
+    return this.vocabularyRepository.findTopicBySlug(slug);
   }
 
   async getVocabulariesByTopic(topicId: string) {
@@ -76,9 +51,7 @@ export class VocabularyService {
     description?: string;
     icon?: string;
   }) {
-    const topic = await this.vocabularyRepository.createTopic(data);
-    await this.redis.del(CACHE_KEYS.VOCABULARY.TOPICS);
-    return topic;
+    return this.vocabularyRepository.createTopic(data);
   }
 
   async updateTopic(
@@ -90,10 +63,7 @@ export class VocabularyService {
       throw new NotFoundException("Topic not found");
     }
 
-    const updated = await this.vocabularyRepository.updateTopic(id, data);
-    await this.redis.del(CACHE_KEYS.VOCABULARY.TOPICS);
-    await this.redis.del(CACHE_KEYS.VOCABULARY.TOPIC(topic.slug));
-    return updated;
+    return this.vocabularyRepository.updateTopic(id, data);
   }
 
   async deleteTopic(id: string) {
@@ -102,9 +72,7 @@ export class VocabularyService {
       throw new NotFoundException("Topic not found");
     }
 
-    await this.vocabularyRepository.deleteTopic(id);
-    await this.redis.del(CACHE_KEYS.VOCABULARY.TOPICS);
-    await this.redis.del(CACHE_KEYS.VOCABULARY.TOPIC(topic.slug));
+    return this.vocabularyRepository.deleteTopic(id);
   }
 
   async createVocabulary(data: {
@@ -276,8 +244,14 @@ export class VocabularyService {
         name: createTopicIfNotExists,
         slug,
       });
-      topic = { ...createdTopic, vocabularies: [] };
-      await this.redis.del(CACHE_KEYS.VOCABULARY.TOPICS);
+      topic = {
+        id: createdTopic.id,
+        name: createdTopic.name,
+        slug: createdTopic.slug,
+        description: createdTopic.description,
+        icon: createdTopic.icon,
+        vocabularies: [],
+      };
     }
 
     if (!topic) {

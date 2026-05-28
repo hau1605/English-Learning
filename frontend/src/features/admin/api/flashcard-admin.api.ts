@@ -12,6 +12,7 @@ export interface Flashcard {
     id: string;
     word: string;
     meaning: string;
+    pronunciation?: string;
     topic?: { id: string; name: string };
   };
   _count?: { reviews: number };

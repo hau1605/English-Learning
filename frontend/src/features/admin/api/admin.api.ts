@@ -132,8 +132,44 @@ export interface LearningProgressReport {
   }>;
 }
 
-export interface SystemSettings {
-  [key: string]: any;
+export interface SystemSettingRow {
+  id: string;
+  key: string;
+  value: string;
+  type: string;
+  category: string;
+  isPublic: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpsertSystemSettingPayload {
+  key: string;
+  value: string;
+  type?: string;
+  category?: string;
+  isPublic?: boolean;
+}
+
+export type SystemSettings = SystemSettingRow[];
+
+function extractSystemSettingRows(payload: unknown): SystemSettingRow[] {
+  if (Array.isArray(payload)) return payload;
+
+  if (!payload || typeof payload !== 'object') return [];
+
+  const record = payload as { data?: unknown; items?: unknown };
+
+  if (Array.isArray(record.data)) return record.data;
+  if (Array.isArray(record.items)) return record.items;
+
+  if (record.data && typeof record.data === 'object') {
+    const nested = record.data as { data?: unknown; items?: unknown };
+    if (Array.isArray(nested.data)) return nested.data;
+    if (Array.isArray(nested.items)) return nested.items;
+  }
+
+  return [];
 }
 
 export const adminApi = {
@@ -223,13 +259,36 @@ export const adminApi = {
   },
 
   // Settings
-  getSystemSettings: async (): Promise<ApiResponse<SystemSettings>> => {
-    const response = await api.get<ApiResponse<SystemSettings>>('/admin/settings');
+  getSystemSettings: async (): Promise<ApiResponse<SystemSettingRow[]>> => {
+    const response = await api.get<ApiResponse<unknown>>('/admin/settings');
+    return {
+      ...response.data,
+      data: extractSystemSettingRows(response.data.data),
+    };
+  },
+
+  updateSystemSetting: async (
+    key: string,
+    value: any,
+    metadata?: Pick<UpsertSystemSettingPayload, 'type' | 'category' | 'isPublic'>,
+  ): Promise<ApiResponse<SystemSettingRow>> => {
+    const response = await api.put<ApiResponse<any>>(`/admin/settings/${key}`, {
+      value,
+      ...metadata,
+    });
     return response.data;
   },
 
-  updateSystemSetting: async (key: string, value: any): Promise<ApiResponse<any>> => {
-    const response = await api.put<ApiResponse<any>>(`/admin/settings/${key}`, { value });
+  createSystemSetting: async (
+    data: UpsertSystemSettingPayload,
+  ): Promise<ApiResponse<SystemSettingRow>> => {
+    const { key, ...payload } = data;
+    const response = await api.put<ApiResponse<any>>(`/admin/settings/${key}`, payload);
+    return response.data;
+  },
+
+  deleteSystemSetting: async (key: string): Promise<ApiResponse<void>> => {
+    const response = await api.delete<ApiResponse<void>>(`/admin/settings/${key}`);
     return response.data;
   },
 };

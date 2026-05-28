@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { EventListener } from '@/events/listeners/event.listener';
 import { EventHandler } from '@/modules/events/event-handler';
 import { EventService } from '@/modules/events/services/event.service';
 import { WebsocketModule } from '@/websocket/websocket.module';
@@ -26,7 +25,7 @@ import { UsersModule } from '@/modules/users/users.module';
     EmailModule,
     UsersModule,
   ],
-  providers: [EventListener, EventHandler, EventService],
+  providers: [EventHandler, EventService],
   exports: [EventEmitterModule, EventService],
 })
 export class EventsModule {}

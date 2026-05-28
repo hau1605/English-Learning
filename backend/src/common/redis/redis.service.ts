@@ -33,16 +33,21 @@ export class RedisService extends Redis implements OnModuleDestroy {
   }
 
   async getJson<T>(key: string): Promise<T | null> {
-    const data = await this.get(key);
-    if (!data) {
-      this.cacheMisses += 1;
-      return null;
-    }
     try {
-      this.cacheHits += 1;
-      return JSON.parse(data) as T;
-    } catch {
-      this.cacheMisses += 1;
+      const data = await this.get(key);
+      if (!data) {
+        this.cacheMisses += 1;
+        return null;
+      }
+      try {
+        this.cacheHits += 1;
+        return JSON.parse(data) as T;
+      } catch {
+        this.cacheMisses += 1;
+        return null;
+      }
+    } catch (error) {
+      this.logger.warn(`Redis getJson failed for key ${key}: ${error}`);
       return null;
     }
   }
@@ -52,18 +57,30 @@ export class RedisService extends Redis implements OnModuleDestroy {
     value: unknown,
     ttlSeconds?: number,
   ): Promise<void> {
-    const data = JSON.stringify(value);
-    if (ttlSeconds) {
-      await this.setex(key, ttlSeconds, data);
-    } else {
-      await this.set(key, data);
+    try {
+      const data = JSON.stringify(value);
+      if (ttlSeconds) {
+        await this.setex(key, ttlSeconds, data);
+      } else {
+        await this.set(key, data);
+      }
+    } catch (error) {
+      this.logger.warn(`Redis setJson failed for key ${key}: ${error}`);
     }
   }
 
   async delPattern(pattern: string): Promise<void> {
-    const keys = await this.keys(pattern);
-    if (keys.length > 0) {
-      await this.del(...keys);
+    try {
+      let cursor = '0';
+      do {
+        const [newCursor, keys] = await this.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+        cursor = newCursor;
+        if (keys.length > 0) {
+          await this.del(...keys);
+        }
+      } while (cursor !== '0');
+    } catch (error) {
+      this.logger.warn(`Redis delPattern failed for pattern ${pattern}: ${error}`);
     }
   }
 

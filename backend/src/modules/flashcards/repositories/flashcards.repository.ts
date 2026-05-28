@@ -15,10 +15,37 @@ export interface PaginationResult<T> {
 export class FlashcardsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  private toUserFlashcardPayload(review: any) {
+    return {
+      ...review,
+      vocabulary: review.flashcard.vocabulary,
+    };
+  }
+
+  private toNewFlashcardPayload(flashcard: any) {
+    return {
+      id: flashcard.id,
+      flashcardId: flashcard.id,
+      vocabularyId: flashcard.vocabularyId,
+      repetitionCount: 0,
+      easeFactor: 2.5,
+      intervalDays: 0,
+      nextReviewAt: new Date(),
+      lastReviewedAt: null,
+      correctStreak: 0,
+      wrongCount: 0,
+      totalReviews: 0,
+      createdAt: flashcard.createdAt,
+      updatedAt: flashcard.updatedAt,
+      flashcard,
+      vocabulary: flashcard.vocabulary,
+    };
+  }
+
   async getDueCards(userId: string, limit: number) {
     const now = new Date();
 
-    return this.prisma.userFlashcardReview.findMany({
+    const reviewedDueCards = await this.prisma.userFlashcardReview.findMany({
       where: {
         userId,
         nextReviewAt: { lte: now },
@@ -46,21 +73,60 @@ export class FlashcardsRepository {
       ],
       take: limit,
     });
+    console.log('Reviewed due cards:', reviewedDueCards);
+
+    const remainingLimit = Math.max(0, limit - reviewedDueCards.length);
+    if (remainingLimit === 0) {
+      return reviewedDueCards.map((review) => this.toUserFlashcardPayload(review));
+    }
+
+    const newCards = await this.prisma.flashcard.findMany({
+      where: {
+        reviews: {
+          none: { userId },
+        },
+      },
+      include: {
+        vocabulary: {
+          select: {
+            id: true,
+            word: true,
+            pronunciation: true,
+            meaning: true,
+            example: true,
+            audioUrl: true,
+            imageUrl: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+      take: remainingLimit,
+    });
+
+    return [
+      ...reviewedDueCards.map((review) => this.toUserFlashcardPayload(review)),
+      ...newCards.map((flashcard) => this.toNewFlashcardPayload(flashcard)),
+    ];
   }
 
   async getStats(userId: string) {
-    const [totalReviews, totalCards, dueCards, masteredCards] = await Promise.all([
+    const [totalReviews, totalCards, dueReviewedCards, unreviewedCards, masteredCards] = await Promise.all([
       this.prisma.userFlashcardReview.aggregate({
         where: { userId },
         _sum: { totalReviews: true },
       }),
-      this.prisma.userFlashcardReview.count({
-        where: { userId },
-      }),
+      this.prisma.flashcard.count(),
       this.prisma.userFlashcardReview.count({
         where: {
           userId,
           nextReviewAt: { lte: new Date() },
+        },
+      }),
+      this.prisma.flashcard.count({
+        where: {
+          reviews: {
+            none: { userId },
+          },
         },
       }),
       this.prisma.userFlashcardReview.count({
@@ -83,7 +149,7 @@ export class FlashcardsRepository {
     return {
       totalReviews: totalReviews._sum.totalReviews || 0,
       totalCards,
-      dueCards,
+      dueCards: dueReviewedCards + unreviewedCards,
       masteredCards,
       reviewsByDay: reviewsByDay.map((r: any) => ({
         date: r.date,
@@ -93,26 +159,38 @@ export class FlashcardsRepository {
   }
 
   async getAllForUser(userId: string, topicId?: string) {
-    const where: any = { userId };
+    const flashcardWhere: any = {};
 
     if (topicId) {
-      where.flashcard = {
-        vocabulary: {
-          topicId,
-        },
-      };
+      flashcardWhere.vocabulary = { topicId };
     }
 
-    return this.prisma.userFlashcardReview.findMany({
-      where,
+    const flashcards = await this.prisma.flashcard.findMany({
+      where: flashcardWhere,
       include: {
-        flashcard: {
-          include: {
-            vocabulary: true,
-          },
+        vocabulary: true,
+        reviews: {
+          where: { userId },
+          take: 1,
+          orderBy: { updatedAt: 'desc' },
         },
       },
-      orderBy: { nextReviewAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return flashcards.map((flashcard) => {
+      const review = flashcard.reviews[0];
+      const { reviews, ...card } = flashcard;
+
+      if (review) {
+        return {
+          ...review,
+          flashcard: card,
+          vocabulary: card.vocabulary,
+        };
+      }
+
+      return this.toNewFlashcardPayload(card);
     });
   }
 
@@ -120,7 +198,13 @@ export class FlashcardsRepository {
     return this.prisma.flashcard.findUnique({
       where: { id },
       include: {
-        vocabulary: true,
+        vocabulary: {
+          include: {
+            topic: {
+              select: { id: true, name: true },
+            },
+          },
+        },
       },
     });
   }
@@ -200,7 +284,13 @@ export class FlashcardsRepository {
         hint: dto.hint,
       },
       include: {
-        vocabulary: true,
+        vocabulary: {
+          include: {
+            topic: {
+              select: { id: true, name: true },
+            },
+          },
+        },
       },
     });
   }
@@ -210,7 +300,13 @@ export class FlashcardsRepository {
       where: { id },
       data,
       include: {
-        vocabulary: true,
+        vocabulary: {
+          include: {
+            topic: {
+              select: { id: true, name: true },
+            },
+          },
+        },
       },
     });
   }
@@ -244,7 +340,13 @@ export class FlashcardsRepository {
         hint: vocab.pronunciation || undefined,
       },
       include: {
-        vocabulary: true,
+        vocabulary: {
+          include: {
+            topic: {
+              select: { id: true, name: true },
+            },
+          },
+        },
       },
     });
   }

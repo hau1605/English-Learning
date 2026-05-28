@@ -14,7 +14,10 @@ export interface MenuItem {
   path: string;
   orderIndex: number;
   parentId: string | null;
+  parent?: { id: string; code: string; label: string } | null;
   isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
   children: MenuItem[];
   roles: MenuRole[];
 }

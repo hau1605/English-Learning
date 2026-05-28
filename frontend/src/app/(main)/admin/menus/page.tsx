@@ -1,206 +1,71 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
-import { MenuItem, MenuRole, menuApi, CreateMenuItemDto, UpdateMenuItemDto } from '@/features/menu/api/menu.api';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import {
+  MenuItem,
+  MenuRole,
+  menuApi,
+  CreateMenuItemDto,
+} from "@/features/menu/api/menu.api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  ChevronDown,
-  ChevronRight,
-  Plus,
-  Pencil,
-  Trash2,
-  Eye,
-  EyeOff,
-  Loader2,
-  GripVertical,
-  ChevronUp,
-} from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Plus, Search } from "lucide-react";
+import { AdminDataTable } from "@/components/admin/admin-data-table";
 
 const iconOptions = [
-  'LayoutDashboard',
-  'GraduationCap',
-  'BookOpen',
-  'ScrollText',
-  'Mic',
-  'Sparkles',
-  'Trophy',
-  'BarChart3',
-  'Shield',
-  'Users',
-  'Settings',
-  'Menu',
-  'FileText',
-  'Bell',
-  'Search',
-  'Filter',
-  'Home',
-  'User',
-  'Calendar',
-  'Clock',
+  "LayoutDashboard",
+  "GraduationCap",
+  "BookOpen",
+  "ScrollText",
+  "Mic",
+  "Sparkles",
+  "Trophy",
+  "BarChart3",
+  "Shield",
+  "Users",
+  "Settings",
+  "Menu",
+  "FileText",
+  "Bell",
+  "Search",
+  "Filter",
+  "Home",
+  "User",
+  "Calendar",
+  "Clock",
 ];
 
-interface MenuTreeItemProps {
-  item: MenuItem;
-  level: number;
-  allItems: MenuItem[];
-  onEdit: (item: MenuItem) => void;
-  onDelete: (item: MenuItem) => void;
-  onToggle: (item: MenuItem) => void;
-  onMoveUp: (item: MenuItem) => void;
-  onMoveDown: (item: MenuItem, siblings: MenuItem[]) => void;
-}
+const menuCode = (item: MenuItem, index: number) =>
+  `MENU-${item.id.replace(/[^a-zA-Z0-9]/g, "").slice(-4).toUpperCase() || String(index + 1).padStart(3, "0")}`;
 
-function MenuTreeItem({
-  item,
-  level,
-  allItems,
-  onEdit,
-  onDelete,
-  onToggle,
-  onMoveUp,
-  onMoveDown,
-}: MenuTreeItemProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const children = allItems.filter((i) => i.parentId === item.id);
-  const hasChildren = children.length > 0;
-
-  const siblings = allItems.filter((i) => i.parentId === item.parentId);
-  const currentIndex = siblings.findIndex((i) => i.id === item.id);
-  const isFirst = currentIndex === 0;
-  const isLast = currentIndex === siblings.length - 1;
-
-  return (
-    <>
-      <tr className={`border-b ${!item.isActive ? 'bg-muted/50 opacity-60' : ''}`}>
-        <td className="py-3 px-4">
-          <div className="flex items-center gap-2" style={{ marginLeft: level * 24 }}>
-            <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-            {hasChildren ? (
-              <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="p-1 hover:bg-accent rounded"
-              >
-                {isOpen ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </button>
-            ) : (
-              <div className="w-6" />
-            )}
-            <span className="font-medium">{item.label}</span>
-          </div>
-        </td>
-        <td className="py-3 px-4 text-sm text-muted-foreground">{item.code}</td>
-        <td className="py-3 px-4 text-sm text-muted-foreground">{item.path}</td>
-        <td className="py-3 px-4">
-          <div className="flex gap-1">
-            {item.roles.slice(0, 3).map((role) => (
-              <Badge key={role.id} variant="secondary" className="text-xs">
-                {role.code}
-              </Badge>
-            ))}
-            {item.roles.length > 3 && (
-              <Badge variant="outline" className="text-xs">
-                +{item.roles.length - 3}
-              </Badge>
-            )}
-          </div>
-        </td>
-        <td className="py-3 px-4">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onMoveUp(item)}
-              disabled={isFirst}
-              className="p-1 hover:bg-accent rounded disabled:opacity-30"
-              title="Move up"
-            >
-              <ChevronUp className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => onMoveDown(item, siblings)}
-              disabled={isLast}
-              className="p-1 hover:bg-accent rounded disabled:opacity-30"
-              title="Move down"
-            >
-              <ChevronDown className="h-4 w-4" />
-            </button>
-          </div>
-        </td>
-        <td className="py-3 px-4">
-          <Switch
-            checked={item.isActive}
-            onCheckedChange={() => onToggle(item)}
-          />
-        </td>
-        <td className="py-3 px-4">
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEdit(item)}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onDelete(item)}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </td>
-      </tr>
-      {isOpen && hasChildren && (
-        <>
-          {children
-            .sort((a, b) => a.orderIndex - b.orderIndex)
-            .map((child) => (
-              <MenuTreeItem
-                key={child.id}
-                item={child}
-                level={level + 1}
-                allItems={allItems}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onToggle={onToggle}
-                onMoveUp={onMoveUp}
-                onMoveDown={onMoveDown}
-              />
-            ))}
-        </>
-      )}
-    </>
-  );
+function flattenMenu(items: MenuItem[]): MenuItem[] {
+  return items.flatMap((item) => [item, ...flattenMenu(item.children || [])]);
 }
 
 export default function AdminMenusPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [roles, setRoles] = useState<MenuRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<CreateMenuItemDto>({
-    code: '',
-    label: '',
-    icon: '',
-    path: '',
+    code: "",
+    label: "",
+    icon: "",
+    path: "",
     orderIndex: 0,
     parentId: undefined,
     isActive: true,
@@ -214,10 +79,10 @@ export default function AdminMenusPage() {
         menuApi.getMenuTree(),
         menuApi.getAllRoles(),
       ]);
-      setMenuItems(menuResponse.data);
+      setMenuItems(flattenMenu(menuResponse.data));
       setRoles(rolesResponse.data);
-    } catch (error) {
-      toast.error('Failed to load menu data');
+    } catch {
+      toast.error("Failed to load menu data");
     } finally {
       setIsLoading(false);
     }
@@ -227,19 +92,23 @@ export default function AdminMenusPage() {
     loadData();
   }, []);
 
-  const rootItems = menuItems.filter((item) => !item.parentId);
+  const filteredItems = menuItems.filter((item) =>
+    `${item.code} ${item.label} ${item.path} ${item.icon || ""}`
+      .toLowerCase()
+      .includes(search.toLowerCase()),
+  );
 
   const handleEdit = (item: MenuItem) => {
     setEditingItem(item);
     setFormData({
       code: item.code,
       label: item.label,
-      icon: item.icon || '',
+      icon: item.icon || "",
       path: item.path,
       orderIndex: item.orderIndex,
       parentId: item.parentId || undefined,
       isActive: item.isActive,
-      roleCodes: item.roles.map((r) => r.code),
+      roleCodes: item.roles.map((role) => role.code),
     });
     setIsDialogOpen(true);
   };
@@ -247,10 +116,10 @@ export default function AdminMenusPage() {
   const handleCreate = () => {
     setEditingItem(null);
     setFormData({
-      code: '',
-      label: '',
-      icon: '',
-      path: '/',
+      code: "",
+      label: "",
+      icon: "",
+      path: "/",
       orderIndex: 0,
       parentId: undefined,
       isActive: true,
@@ -264,71 +133,28 @@ export default function AdminMenusPage() {
     try {
       if (editingItem) {
         await menuApi.updateMenuItem(editingItem.id, formData);
-        toast.success('Menu item updated');
+        toast.success("Menu item updated");
       } else {
         await menuApi.createMenuItem(formData);
-        toast.success('Menu item created');
+        toast.success("Menu item created");
       }
       setIsDialogOpen(false);
       loadData();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to save menu item');
+      toast.error(error.response?.data?.message || "Failed to save menu item");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDelete = async (item: MenuItem) => {
-    if (!confirm(`Delete "${item.label}"?`)) return;
+    if (!confirm(`Xoa "${item.label}"?`)) return;
     try {
       await menuApi.deleteMenuItem(item.id);
-      toast.success('Menu item deleted');
+      toast.success("Menu item deleted");
       loadData();
-    } catch (error) {
-      toast.error('Failed to delete menu item');
-    }
-  };
-
-  const handleToggle = async (item: MenuItem) => {
-    try {
-      await menuApi.updateMenuItem(item.id, { isActive: !item.isActive });
-      toast.success(`Menu item ${!item.isActive ? 'enabled' : 'disabled'}`);
-      loadData();
-    } catch (error) {
-      toast.error('Failed to update menu item');
-    }
-  };
-
-  const handleMoveUp = async (item: MenuItem) => {
-    const siblings = menuItems.filter((i) => i.parentId === item.parentId);
-    const currentIndex = siblings.findIndex((i) => i.id === item.id);
-    if (currentIndex <= 0) return;
-
-    const prevItem = siblings[currentIndex - 1];
-    try {
-      await menuApi.reorderMenus([
-        { id: item.id, orderIndex: prevItem.orderIndex, parentId: item.parentId || undefined },
-        { id: prevItem.id, orderIndex: item.orderIndex, parentId: prevItem.parentId || undefined },
-      ]);
-      loadData();
-    } catch (error) {
-      toast.error('Failed to reorder');
-    }
-  };
-
-  const handleMoveDown = async (item: MenuItem, siblings: MenuItem[]) => {
-    const currentIndex = siblings.findIndex((i) => i.id === item.id);
-    if (currentIndex >= siblings.length - 1) return;
-
-    const nextItem = siblings[currentIndex + 1];
-    try {
-      await menuApi.reorderMenus([
-        { id: item.id, orderIndex: nextItem.orderIndex, parentId: item.parentId || undefined },
-        { id: nextItem.id, orderIndex: item.orderIndex, parentId: nextItem.parentId || undefined },
-      ]);
-      loadData();
-    } catch (error) {
-      toast.error('Failed to reorder');
+    } catch {
+      toast.error("Failed to delete menu item");
     }
   };
 
@@ -336,218 +162,124 @@ export default function AdminMenusPage() {
     setFormData((prev) => ({
       ...prev,
       roleCodes: prev.roleCodes?.includes(roleCode)
-        ? prev.roleCodes.filter((r) => r !== roleCode)
+        ? prev.roleCodes.filter((role) => role !== roleCode)
         : [...(prev.roleCodes || []), roleCode],
     }));
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Menu Management</h1>
-          <p className="text-muted-foreground">
-            Configure sidebar menus and their access permissions
-          </p>
-        </div>
-        <Button onClick={handleCreate}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Menu Item
-        </Button>
-      </div>
-
-      <div className="bg-card rounded-lg border">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="py-3 px-4 text-left text-sm font-medium">Label</th>
-                <th className="py-3 px-4 text-left text-sm font-medium">Code</th>
-                <th className="py-3 px-4 text-left text-sm font-medium">Path</th>
-                <th className="py-3 px-4 text-left text-sm font-medium">Roles</th>
-                <th className="py-3 px-4 text-left text-sm font-medium">Order</th>
-                <th className="py-3 px-4 text-left text-sm font-medium">Active</th>
-                <th className="py-3 px-4 text-left text-sm font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rootItems
-                .sort((a, b) => a.orderIndex - b.orderIndex)
-                .map((item) => (
-                  <MenuTreeItem
-                    key={item.id}
-                    item={item}
-                    level={0}
-                    allItems={menuItems}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onToggle={handleToggle}
-                    onMoveUp={handleMoveUp}
-                    onMoveDown={handleMoveDown}
-                  />
-                ))}
-              {rootItems.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="py-8 text-center text-muted-foreground">
-                    No menu items found. Create your first menu item.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Create/Edit Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {editingItem ? 'Edit Menu Item' : 'Create Menu Item'}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Label</label>
-                <Input
-                  value={formData.label}
-                  onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-                  placeholder="Menu Label"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Code</label>
-                <Input
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  placeholder="menu-code"
-                  disabled={!!editingItem}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Path</label>
-                <Input
-                  value={formData.path}
-                  onChange={(e) => setFormData({ ...formData, path: e.target.value })}
-                  placeholder="/path"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Icon</label>
-                <select
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                  value={formData.icon}
-                  onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                >
-                  <option value="">No Icon</option>
-                  {iconOptions.map((icon) => (
-                    <option key={icon} value={icon}>
-                      {icon}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Parent Menu</label>
-                <select
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                  value={formData.parentId || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, parentId: e.target.value || undefined })
-                  }
-                >
-                  <option value="">No Parent (Root)</option>
-                  {menuItems
-                    .filter((item) => !item.parentId && item.id !== editingItem?.id)
-                    .map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.label}
-                      </option>
-                    ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Order</label>
-                <Input
-                  type="number"
-                  value={formData.orderIndex}
-                  onChange={(e) =>
-                    setFormData({ ...formData, orderIndex: parseInt(e.target.value) || 0 })
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Role Access</label>
-              <div className="flex flex-wrap gap-2 p-3 border rounded-lg">
-                {roles.map((role) => (
-                  <label
-                    key={role.id}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={formData.roleCodes?.includes(role.code) || false}
-                      onChange={() => handleRoleToggle(role.code)}
-                      className="rounded border-gray-300"
-                    />
-                    <span className="text-sm">{role.name}</span>
-                  </label>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Leave empty to allow all roles
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="isActive"
-                checked={formData.isActive}
-                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                className="rounded border-gray-300"
-              />
-              <label htmlFor="isActive" className="text-sm font-medium">
-                Active
-              </label>
-            </div>
+    <AdminDataTable
+      title="Quan ly menu"
+      data={filteredItems}
+      isLoading={isLoading}
+      total={filteredItems.length}
+      page={1}
+      totalPages={1}
+      getCode={menuCode}
+      getTitle={(item) => item.label}
+      minWidth={1240}
+      columns={[
+        { key: "code", header: "Code", render: (item) => item.code, className: "min-w-[170px]" },
+        { key: "label", header: "Label", render: (item) => item.label, className: "min-w-[180px]" },
+        { key: "icon", header: "Icon", render: (item) => item.icon || "---" },
+        { key: "path", header: "Path", render: (item) => item.path, className: "min-w-[180px]" },
+        { key: "orderIndex", header: "Order index", render: (item) => item.orderIndex },
+        { key: "parent", header: "Parent", render: (item) => item.parent?.label || item.parentId || "---", className: "max-w-[170px] truncate" },
+        { key: "isActive", header: "Active", render: (item) => item.isActive ? "Yes" : "No" },
+        { key: "createdAt", header: "Created at", render: (item) => new Date(item.createdAt).toLocaleDateString("vi-VN") },
+        { key: "updatedAt", header: "Updated at", render: (item) => new Date(item.updatedAt).toLocaleDateString("vi-VN") },
+      ]}
+      detailFields={[
+        { label: "ID", render: (item) => item.id },
+        { label: "Code", render: (item) => item.code },
+        { label: "Label", render: (item) => item.label },
+        { label: "Icon", render: (item) => item.icon },
+        { label: "Path", render: (item) => item.path },
+        { label: "Order index", render: (item) => item.orderIndex },
+        { label: "Parent", render: (item) => item.parent?.label || item.parentId },
+        { label: "Active", render: (item) => String(item.isActive) },
+        { label: "Created at", render: (item) => new Date(item.createdAt).toLocaleString("vi-VN") },
+        { label: "Updated at", render: (item) => new Date(item.updatedAt).toLocaleString("vi-VN") },
+      ]}
+      toolbar={
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+          <div className="relative">
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} className="h-9 w-full rounded border-slate-200 bg-white pr-9 text-xs shadow-none dark:border-border dark:bg-background lg:w-[280px]" placeholder="Tim theo tu khoa..." />
+            <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="h-9 gap-2 rounded bg-blue-700 px-3 text-xs hover:bg-blue-800" onClick={handleCreate}>
+                <Plus className="h-4 w-4" />
+                Them moi
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[560px]">
+              <DialogHeader>
+                <DialogTitle>{editingItem ? "Edit Menu Item" : "Create Menu Item"}</DialogTitle>
+                <DialogDescription>Cap nhat du lieu dung cac cot trong bang menu_items.</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label>Code</Label>
+                    <Input value={formData.code} onChange={(event) => setFormData({ ...formData, code: event.target.value })} disabled={!!editingItem} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Label</Label>
+                    <Input value={formData.label} onChange={(event) => setFormData({ ...formData, label: event.target.value })} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Path</Label>
+                    <Input value={formData.path} onChange={(event) => setFormData({ ...formData, path: event.target.value })} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Icon</Label>
+                    <select className="h-10 rounded-md border border-input bg-background px-3 text-sm" value={formData.icon} onChange={(event) => setFormData({ ...formData, icon: event.target.value })}>
+                      <option value="">No icon</option>
+                      {iconOptions.map((icon) => <option key={icon} value={icon}>{icon}</option>)}
+                    </select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Parent</Label>
+                    <select className="h-10 rounded-md border border-input bg-background px-3 text-sm" value={formData.parentId || ""} onChange={(event) => setFormData({ ...formData, parentId: event.target.value || undefined })}>
+                      <option value="">No parent</option>
+                      {menuItems.filter((item) => item.id !== editingItem?.id).map((item) => (
+                        <option key={item.id} value={item.id}>{item.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Order index</Label>
+                    <Input type="number" value={formData.orderIndex} onChange={(event) => setFormData({ ...formData, orderIndex: parseInt(event.target.value) || 0 })} />
+                  </div>
+                </div>
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <input type="checkbox" checked={formData.isActive} onChange={(event) => setFormData({ ...formData, isActive: event.target.checked })} />
+                  Active
+                </label>
+                <div className="grid gap-2">
+                  <Label>Role access</Label>
+                  <div className="flex flex-wrap gap-3 rounded-md border p-3">
+                    {roles.map((role) => (
+                      <label key={role.id} className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" checked={formData.roleCodes?.includes(role.code) || false} onChange={() => handleRoleToggle(role.code)} />
+                        {role.name}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Huy</Button>
+                <Button onClick={handleSave} disabled={isSaving}>{isSaving ? "Dang luu..." : "Luu"}</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      }
+      onEdit={handleEdit}
+      onDelete={handleDelete}
+    />
   );
 }

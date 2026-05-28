@@ -4,11 +4,14 @@ import {
   SubscribeMessage,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
   ConnectedSocket,
   MessageBody,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
-import { Logger } from "@nestjs/common";
+import { createAdapter } from "@socket.io/redis-adapter";
+import Redis from "ioredis";
+import { Logger, Injectable } from "@nestjs/common";
 import { AuthService } from "@/modules/auth/services/auth.service";
 
 const WS_ALLOWED =
@@ -17,13 +20,16 @@ const WS_ALLOWED_LIST = WS_ALLOWED.split(",")
   .map((s) => s.trim())
   .filter(Boolean);
 
+@Injectable()
 @WebSocketGateway({
   cors: {
     origin: WS_ALLOWED_LIST.length > 0 ? WS_ALLOWED_LIST : "*",
   },
   namespace: "/ws",
+  pingInterval: 25000,
+  pingTimeout: 20000,
 })
-export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class AppGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
@@ -38,12 +44,93 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly connWindowMs = Number(
     process.env.WS_CONN_WINDOW_MS || 60_000,
   );
+  private readonly ipCleanupIntervalMs = Number(
+    process.env.WS_IP_CLEANUP_INTERVAL_MS || 300_000,
+  );
+  private ipCleanupTimer: NodeJS.Timeout | null = null;
+  private messageRateLimits: Map<string, { count: number; resetAt: number }> =
+    new Map();
+  private readonly msgRateLimit = Number(
+    process.env.WS_MSG_RATE_LIMIT || 10,
+  );
+  private readonly msgRateWindowMs = Number(
+    process.env.WS_MSG_RATE_WINDOW_MS || 10_000,
+  );
 
   constructor(private readonly authService: AuthService) {}
 
+  async afterInit(server: Server) {
+    const redisHost = process.env.REDIS_HOST || "localhost";
+    const redisPort = Number(process.env.REDIS_PORT) || 6379;
+    const redisPassword = process.env.REDIS_PASSWORD;
+
+    try {
+      const pubClient = new Redis({
+        host: redisHost,
+        port: redisPort,
+        password: redisPassword,
+        retryStrategy: (times) => Math.min(times * 100, 3000),
+      });
+
+      const subClient = pubClient.duplicate();
+
+      pubClient.on("error", (err) => {
+        this.logger.error("Redis Pub Client error:", err);
+      });
+
+      subClient.on("error", (err) => {
+        this.logger.error("Redis Sub Client error:", err);
+      });
+
+      this.server.adapter(createAdapter(pubClient, subClient));
+      this.logger.log("Redis adapter initialized successfully");
+    } catch (error) {
+      this.logger.warn(
+        `Failed to initialize Redis adapter, falling back to in-memory adapter: ${error}`,
+      );
+    }
+
+    this.startIpCleanupTimer();
+    this.logger.log("AppGateway initialized with heartbeat configuration");
+  }
+
+  private startIpCleanupTimer() {
+    if (this.ipCleanupTimer) {
+      clearInterval(this.ipCleanupTimer);
+    }
+
+    this.ipCleanupTimer = setInterval(() => {
+      this.cleanupStaleIpConnections();
+    }, this.ipCleanupIntervalMs);
+
+    this.ipCleanupTimer.unref();
+  }
+
+  private cleanupStaleIpConnections() {
+    const now = Date.now();
+    let cleanedCount = 0;
+
+    for (const [ip, info] of this.ipConnections.entries()) {
+      if (now > info.resetAt + this.ipCleanupIntervalMs) {
+        this.ipConnections.delete(ip);
+        cleanedCount++;
+      }
+    }
+
+    for (const [userId, info] of this.messageRateLimits.entries()) {
+      if (now > info.resetAt + this.ipCleanupIntervalMs) {
+        this.messageRateLimits.delete(userId);
+        cleanedCount++;
+      }
+    }
+
+    if (cleanedCount > 0) {
+      this.logger.debug(`Cleaned up ${cleanedCount} stale rate limit entries`);
+    }
+  }
+
   async handleConnection(client: Socket) {
     try {
-      // origin check
       const origin = client.handshake.headers.origin as string | undefined;
       if (
         WS_ALLOWED_LIST.length > 0 &&
@@ -55,7 +142,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
-      // simple rate limit per IP
       const remoteIp = (client.handshake.address ||
         (client.handshake.headers["x-forwarded-for"] as string) ||
         client.conn.remoteAddress ||
@@ -96,7 +182,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.data.userId = payload.sub;
       client.data.sessionId = payload.sessionId;
 
-      // Track user sockets
       if (!this.userSockets.has(payload.sub)) {
         this.userSockets.set(payload.sub, new Set());
       }
@@ -106,7 +191,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       client.join(`user:${payload.sub}`);
 
-      // Notify user count update
       this.broadcastOnlineUsers();
 
       client.emit("connected", {
@@ -163,7 +247,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId = client.data.userId;
     if (!userId) return;
 
-    // Set typing timeout
     const roomTyping = this.typingUsers.get(data.roomId) || new Map();
     if (roomTyping.has(userId)) {
       clearTimeout(roomTyping.get(userId)!);
@@ -176,7 +259,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     roomTyping.set(userId, timeout);
     this.typingUsers.set(data.roomId, roomTyping);
 
-    // Broadcast typing to room
     this.server.to(`room:${data.roomId}`).emit("user:typing", {
       userId,
       type: data.type,
@@ -198,7 +280,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       roomTyping.delete(userId);
     }
 
-    // Broadcast stopped typing
     this.server.to(`room:${data.roomId}`).emit("user:typing", {
       userId,
       type: data.type,
@@ -214,13 +295,16 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId = client.data.userId;
     if (!userId) return;
 
-    // Stop typing indicator
+    if (!this.checkMessageRateLimit(userId)) {
+      this.logger.warn(`Message rate limit exceeded for user ${userId}`);
+      return;
+    }
+
     this.handleTypingStop(client, {
       roomId: data.roomId,
       type: data.type || "chat",
     });
 
-    // Broadcast message to room
     this.server.to(`room:${data.roomId}`).emit("chat:message", {
       userId,
       message: data.message,
@@ -229,7 +313,23 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
-  // ========== EMIT METHODS ==========
+  private checkMessageRateLimit(userId: string): boolean {
+    const now = Date.now();
+    const info = this.messageRateLimits.get(userId) || {
+      count: 0,
+      resetAt: now + this.msgRateWindowMs,
+    };
+
+    if (now > info.resetAt) {
+      info.count = 0;
+      info.resetAt = now + this.msgRateWindowMs;
+    }
+
+    info.count += 1;
+    this.messageRateLimits.set(userId, info);
+
+    return info.count <= this.msgRateLimit;
+  }
 
   emitToUser(userId: string, event: string, data: any) {
     this.server.to(`user:${userId}`).emit(event, data);
@@ -271,8 +371,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.emitToUser(userId, "lesson:completed", { lessonId });
   }
 
-  // ========== HELPER METHODS ==========
-
   private broadcastOnlineUsers() {
     this.server.emit("users:online", {
       count: this.userSockets.size,
@@ -299,5 +397,12 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     return null;
+  }
+
+  onModuleDestroy() {
+    if (this.ipCleanupTimer) {
+      clearInterval(this.ipCleanupTimer);
+      this.ipCleanupTimer = null;
+    }
   }
 }

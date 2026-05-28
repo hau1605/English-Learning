@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
+import { RedisService } from '@/common/redis/redis.service';
+import { CACHE_KEYS, CACHE_TTL } from '@/common/constants/cache-keys';
 
 export interface PaginationResult<T> {
   data: T[];
@@ -13,10 +15,19 @@ export interface PaginationResult<T> {
 
 @Injectable()
 export class VocabularyRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   async findAllTopics() {
-    return this.prisma.topic.findMany({
+    const cacheKey = CACHE_KEYS.VOCABULARY.TOPICS;
+    const cached = await this.redis.getJson(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const topics = await this.prisma.topic.findMany({
       include: {
         _count: {
           select: { vocabularies: true },
@@ -24,6 +35,9 @@ export class VocabularyRepository {
       },
       orderBy: { name: 'asc' },
     });
+
+    await this.redis.setJson(cacheKey, topics, CACHE_TTL.MEDIUM);
+    return topics;
   }
 
   async findAllTopicsAdmin() {
@@ -41,7 +55,14 @@ export class VocabularyRepository {
   }
 
   async findTopicBySlug(slug: string) {
-    return this.prisma.topic.findUnique({
+    const cacheKey = CACHE_KEYS.VOCABULARY.TOPIC(slug);
+
+    const cached = await this.redis.getJson(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const topic = await this.prisma.topic.findUnique({
       where: { slug },
       include: {
         vocabularies: {
@@ -49,10 +70,29 @@ export class VocabularyRepository {
         },
       },
     });
+
+    if (topic) {
+      await this.redis.setJson(cacheKey, topic, CACHE_TTL.LONG);
+    }
+    return topic;
   }
 
-  async findTopicById(id: string) {
-    return this.prisma.topic.findUnique({
+  async findTopicById(id: string): Promise<{
+    id: string;
+    name: string;
+    slug: string;
+    description: string | null;
+    icon: string | null;
+    vocabularies: { id: string }[];
+    [key: string]: any;
+  } | null> {
+    const cacheKey = CACHE_KEYS.VOCABULARY.TOPIC(id);
+    const cached = await this.redis.getJson(cacheKey);
+    if (cached) {
+      return cached as { id: string; name: string; slug: string; description: string | null; icon: string | null; vocabularies: { id: string }[]; [key: string]: any };
+    }
+
+    const topic = await this.prisma.topic.findUnique({
       where: { id },
       include: {
         vocabularies: {
@@ -60,11 +100,30 @@ export class VocabularyRepository {
         },
       },
     });
+
+    if (topic) {
+      await this.redis.setJson(cacheKey, topic, CACHE_TTL.LONG);
+    }
+    return topic;
+  }
+
+  async invalidateTopicCache(topicId: string): Promise<void> {
+    await this.redis.del(CACHE_KEYS.VOCABULARY.TOPIC(topicId));
+    await this.redis.del(CACHE_KEYS.VOCABULARY.TOPICS);
   }
 
   async findVocabulariesByTopic(topicId: string) {
     return this.prisma.vocabulary.findMany({
       where: { topicId },
+      include: {
+        topic: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
       orderBy: { word: 'asc' },
     });
   }
@@ -147,22 +206,28 @@ export class VocabularyRepository {
   }
 
   async createTopic(data: { name: string; slug: string; description?: string; icon?: string }) {
-    return this.prisma.topic.create({
+    const result = await this.prisma.topic.create({
       data,
     });
+    await this.invalidateTopicCache(result.id);
+    return result;
   }
 
   async updateTopic(id: string, data: { name?: string; description?: string; icon?: string }) {
-    return this.prisma.topic.update({
+    const result = await this.prisma.topic.update({
       where: { id },
       data,
     });
+    await this.invalidateTopicCache(id);
+    return result;
   }
 
   async deleteTopic(id: string) {
-    return this.prisma.topic.delete({
+    const result = await this.prisma.topic.delete({
       where: { id },
     });
+    await this.invalidateTopicCache(id);
+    return result;
   }
 
   async createVocabulary(data: {
@@ -177,12 +242,14 @@ export class VocabularyRepository {
     difficulty?: number;
     partOfSpeech?: string;
   }) {
-    return this.prisma.vocabulary.create({
+    const result = await this.prisma.vocabulary.create({
       data,
       include: {
         topic: true,
       },
     });
+    await this.invalidateTopicCache(data.topicId);
+    return result;
   }
 
   async updateVocabulary(id: string, data: {
@@ -196,19 +263,42 @@ export class VocabularyRepository {
     difficulty?: number;
     partOfSpeech?: string;
   }) {
-    return this.prisma.vocabulary.update({
+    // Get current vocabulary to know topicId for cache invalidation
+    const current = await this.prisma.vocabulary.findUnique({
+      where: { id },
+      select: { topicId: true },
+    });
+
+    const result = await this.prisma.vocabulary.update({
       where: { id },
       data,
       include: {
         topic: true,
       },
     });
+
+    // Invalidate both old and new topic caches
+    await this.invalidateTopicCache(result.topicId);
+    if (current && current.topicId !== result.topicId) {
+      await this.invalidateTopicCache(current.topicId);
+    }
+    return result;
   }
 
   async deleteVocabulary(id: string) {
-    return this.prisma.vocabulary.delete({
+    const current = await this.prisma.vocabulary.findUnique({
+      where: { id },
+      select: { topicId: true },
+    });
+
+    const result = await this.prisma.vocabulary.delete({
       where: { id },
     });
+
+    if (current) {
+      await this.invalidateTopicCache(current.topicId);
+    }
+    return result;
   }
 
   async createBulkVocabulary(data: Array<{
@@ -228,7 +318,17 @@ export class VocabularyRepository {
     });
   }
 
-  async findVocabulariesForExport(where: any = {}) {
+  async findVocabulariesForExport(where: any = {}): Promise<Array<{
+    id: string;
+    word: string;
+    pronunciation: string | null;
+    meaning: string;
+    example: string | null;
+    exampleTranslation: string | null;
+    difficulty: number;
+    partOfSpeech: string | null;
+    topic: { name: string } | null;
+  }>> {
     return this.prisma.vocabulary.findMany({
       where,
       include: {

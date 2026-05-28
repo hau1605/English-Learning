@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "@/prisma/prisma.service";
 import { RedisService } from "@/common/redis/redis.service";
-import { CACHE_TTL } from "@/common/constants/cache-keys";
+import { CACHE_KEYS, CACHE_TTL } from "@/common/constants/cache-keys";
 import { EventService } from "@/modules/events/services/event.service";
 import { NotificationsService } from "@/modules/notifications/services/notifications.service";
 import { EmailService } from "@/modules/email/services/email.service";
@@ -40,7 +40,7 @@ export class ProgressService {
   ) {}
 
   async getUserProgress(userId: string): Promise<UserProgress> {
-    const cacheKey = `progress:${userId}`;
+    const cacheKey = CACHE_KEYS.PROGRESS.USER(userId);
     const cached = await this.redis.getJson<UserProgress>(cacheKey);
     if (cached) {
       return cached;

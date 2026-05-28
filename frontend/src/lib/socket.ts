@@ -25,7 +25,7 @@ type ServerToClientEvents = {
   'speaking:result': (data: {
     attemptId: string;
     score: number;
-    feedback: string;
+    xpEarned: number;
   }) => void;
   'xp:update': (data: { xp: number; source: string }) => void;
   'streak:update': (data: { streakDays: number }) => void;
@@ -66,14 +66,15 @@ export function getSocket(accessToken?: string): AppSocket {
   if (!socket) {
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000';
 
-    socket = io(socketUrl, {
-      path: '/ws',
+    socket = io(`${socketUrl}/ws`, {
       auth: accessToken ? { token: accessToken } : {},
+      extraHeaders: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
+      timeout: 20000,
     });
 
     socket.on('connect', () => {
@@ -102,6 +103,7 @@ export function disconnectSocket(): void {
 export function updateSocketAuth(accessToken: string): void {
   if (socket) {
     socket.auth = { token: accessToken };
+    socket.io.opts.extraHeaders = { Authorization: `Bearer ${accessToken}` };
     if (!socket.connected) {
       socket.connect();
     }

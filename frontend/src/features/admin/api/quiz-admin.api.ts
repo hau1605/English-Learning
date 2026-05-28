@@ -130,13 +130,18 @@ export const quizAdminApi = {
     return response.data;
   },
 
-  updateQuestion: async (questionId: string, data: Partial<CreateQuestionDto>): Promise<ApiResponse<QuizQuestion>> => {
-    const response = await api.put<ApiResponse<QuizQuestion>>(`/quizzes/admin/quizzes/0/questions/${questionId}`, data);
+  updateQuestion: async (quizId: string, questionId: string, data: Partial<CreateQuestionDto>): Promise<ApiResponse<QuizQuestion>> => {
+    const response = await api.patch<ApiResponse<QuizQuestion>>(`/quizzes/admin/quizzes/${quizId}/questions/${questionId}`, data);
     return response.data;
   },
 
-  deleteQuestion: async (questionId: string): Promise<ApiResponse<void>> => {
-    const response = await api.delete<ApiResponse<void>>(`/quizzes/admin/quizzes/0/questions/${questionId}`);
+  deleteQuestion: async (quizId: string, questionId: string): Promise<ApiResponse<void>> => {
+    const response = await api.delete<ApiResponse<void>>(`/quizzes/admin/quizzes/${quizId}/questions/${questionId}`);
+    return response.data;
+  },
+
+  getQuestionsByQuiz: async (quizId: string): Promise<ApiResponse<QuizQuestion[]>> => {
+    const response = await api.get<ApiResponse<QuizQuestion[]>>(`/quizzes/admin/quizzes/${quizId}/questions`);
     return response.data;
   },
 };

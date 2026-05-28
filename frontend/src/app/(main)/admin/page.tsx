@@ -36,6 +36,7 @@ import {
 import { useState, useEffect } from "react";
 
 const COLORS = ["#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981"];
+const chartContainerClass = "h-64 min-h-64 w-full min-w-0 sm:h-72";
 
 export default function AdminDashboardPage() {
   const { data: stats, isLoading: statsLoading } = useAdminDashboard();
@@ -131,27 +132,29 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="min-w-0 space-y-6">
+      <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            Admin Dashboard
+          </h1>
           <p className="text-muted-foreground">
             Overview of your platform metrics and activity
           </p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           {statCards.map((stat) => (
             <Card
               key={stat.title}
               className="hover:shadow-md transition-shadow"
             >
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
+              <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+                <CardTitle className="text-sm font-medium leading-tight text-muted-foreground">
                   {stat.title}
                 </CardTitle>
-                <div className={`p-2 rounded-lg ${stat.bgColor}`}>
+                <div className={`shrink-0 rounded-lg p-2 ${stat.bgColor}`}>
                   <stat.icon className={`h-5 w-5 ${stat.color}`} />
                 </div>
               </CardHeader>
@@ -159,7 +162,7 @@ export default function AdminDashboardPage() {
                 <div className="text-3xl font-bold">
                   {stat.value.toLocaleString()}
                 </div>
-                <div className="flex items-center gap-1 mt-1">
+                <div className="mt-1 flex flex-wrap items-center gap-1">
                   <TrendingUp className="h-3 w-3 text-green-500" />
                   <span className="text-xs text-green-500 font-medium">
                     {stat.change}
@@ -175,7 +178,7 @@ export default function AdminDashboardPage() {
 
         {/* Analytics Overview */}
         {analytics?.data && (
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-4 lg:grid-cols-3">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -246,7 +249,7 @@ export default function AdminDashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Flame className="h-8 w-8 text-yellow-500" />
                   <span className="text-4xl font-bold">
                     {analytics.data.weeklyActivity?.xpEarned || 0}
@@ -262,14 +265,14 @@ export default function AdminDashboardPage() {
 
         {/* Charts */}
         <Tabs defaultValue="activity" className="space-y-4">
-          <TabsList>
+          <TabsList className="w-full justify-start overflow-x-auto sm:w-auto">
             <TabsTrigger value="activity">Activity</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="content">Content</TabsTrigger>
           </TabsList>
 
           <TabsContent value="activity" className="space-y-4">
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid min-w-0 gap-4 xl:grid-cols-2">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">
@@ -277,8 +280,13 @@ export default function AdminDashboardPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-72">
-                    <ResponsiveContainer width="100%" height="100%">
+                  <div className={chartContainerClass}>
+                    <ResponsiveContainer
+                      width="100%"
+                      height={288}
+                      minWidth={0}
+                      minHeight={240}
+                    >
                       <LineChart data={weeklyData}>
                         <CartesianGrid
                           strokeDasharray="3 3"
@@ -304,7 +312,7 @@ export default function AdminDashboardPage() {
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="flex items-center justify-center gap-6 mt-4">
+                  <div className="mt-4 flex flex-wrap items-center justify-center gap-4 sm:gap-6">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-blue-500" />
                       <span className="text-sm">Words Learned</span>
@@ -324,8 +332,13 @@ export default function AdminDashboardPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-72">
-                    <ResponsiveContainer width="100%" height="100%">
+                  <div className={chartContainerClass}>
+                    <ResponsiveContainer
+                      width="100%"
+                      height={288}
+                      minWidth={0}
+                      minHeight={240}
+                    >
                       <BarChart data={dauData}>
                         <CartesianGrid
                           strokeDasharray="3 3"
@@ -348,7 +361,7 @@ export default function AdminDashboardPage() {
           </TabsContent>
 
           <TabsContent value="users" className="space-y-4">
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid min-w-0 gap-4 xl:grid-cols-3">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">
@@ -356,8 +369,13 @@ export default function AdminDashboardPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
+                  <div className={chartContainerClass}>
+                    <ResponsiveContainer
+                      width="100%"
+                      height={288}
+                      minWidth={0}
+                      minHeight={240}
+                    >
                       <PieChart>
                         <Pie
                           data={[
@@ -382,7 +400,7 @@ export default function AdminDashboardPage() {
                           outerRadius={80}
                           paddingAngle={5}
                           dataKey="value"
-                          label={({ name, percent }) =>
+                          label={({ name, percent = 0 }) =>
                             `${name} ${(percent * 100).toFixed(0)}%`
                           }
                         >
@@ -428,14 +446,14 @@ export default function AdminDashboardPage() {
                       {activity.data.slice(0, 6).map((item) => (
                         <div
                           key={item.id}
-                          className="flex items-center justify-between rounded-lg border p-3"
+                          className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between"
                         >
-                          <div className="flex items-center gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
                             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
                               <Activity className="h-5 w-5 text-muted-foreground" />
                             </div>
-                            <div>
-                              <p className="font-medium">{item.action}</p>
+                            <div className="min-w-0">
+                              <p className="truncate font-medium">{item.action}</p>
                               <p className="text-sm text-muted-foreground">
                                 {item.entity} •{" "}
                                 {item.actor?.fullName || "System"}
@@ -459,7 +477,7 @@ export default function AdminDashboardPage() {
           </TabsContent>
 
           <TabsContent value="content" className="space-y-4">
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid min-w-0 gap-4 xl:grid-cols-2">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">
@@ -467,8 +485,13 @@ export default function AdminDashboardPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
+                  <div className={chartContainerClass}>
+                    <ResponsiveContainer
+                      width="100%"
+                      height={288}
+                      minWidth={0}
+                      minHeight={240}
+                    >
                       <PieChart>
                         <Pie
                           data={difficultyData}
@@ -478,7 +501,7 @@ export default function AdminDashboardPage() {
                           outerRadius={80}
                           paddingAngle={5}
                           dataKey="value"
-                          label={({ name, percent }) =>
+                          label={({ name, percent = 0 }) =>
                             `${name} ${(percent * 100).toFixed(0)}%`
                           }
                         >

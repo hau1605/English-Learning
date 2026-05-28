@@ -11,11 +11,14 @@ import {
   QuizPerformanceReport,
   LearningProgressReport,
   SystemSettings,
+  SystemSettingRow,
+  UpsertSystemSettingPayload,
   PaginatedData,
 } from '@/features/admin/api/admin.api';
 import { toast } from 'sonner';
 
 export type { UserWithStats, PaginatedData };
+export type { SystemSettingRow };
 
 // Dashboard hooks
 export function useAdminDashboard() {
@@ -201,6 +204,39 @@ export function useUpdateSystemSetting() {
     },
     onError: (error: any) => {
       const message = error.response?.data?.message || 'Failed to update setting';
+      toast.error(message);
+    },
+  });
+}
+
+export function useCreateSystemSetting() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: UpsertSystemSettingPayload) =>
+      adminApi.createSystemSetting(data),
+    onSuccess: () => {
+      toast.success('Setting created successfully');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'settings'] });
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Failed to create setting';
+      toast.error(message);
+    },
+  });
+}
+
+export function useDeleteSystemSetting() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (key: string) => adminApi.deleteSystemSetting(key),
+    onSuccess: () => {
+      toast.success('Setting deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'settings'] });
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Failed to delete setting';
       toast.error(message);
     },
   });

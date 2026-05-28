@@ -1,31 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/utils";
 import { MenuItem } from "@/features/menu/api/menu.api";
 import {
-  ChevronDown,
-  ChevronRight,
-  LayoutDashboard,
-  Shield,
-  Users,
-  BookOpen,
-  GraduationCap,
-  ScrollText,
   BarChart3,
-  Settings,
-  FileText,
-  Menu,
+  Bell,
+  BookOpen,
+  BriefcaseBusiness,
+  CalendarDays,
+  ChevronDown,
+  ChevronLeft,
+  CircleDollarSign,
+  FileQuestion,
+  GraduationCap,
+  LayoutDashboard,
+  KeyRound,
   Loader2,
-  LayoutDashboard as DashboardIcon,
+  Megaphone,
+  Package,
+  ScrollText,
+  Settings,
+  Shield,
+  SlidersHorizontal,
+  Users,
   Zap,
 } from "lucide-react";
-import * as LucideIcons from "lucide-react";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard,
+  KeyRound,
   GraduationCap,
   BookOpen,
   ScrollText,
@@ -33,9 +39,160 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Shield,
   Users,
   Settings,
-  Menu,
-  DashboardIcon,
+  Megaphone,
+  BriefcaseBusiness,
+  Package,
+  CalendarDays,
+  CircleDollarSign,
+  FileQuestion,
+  Bell,
+  SlidersHorizontal,
+  Zap,
 };
+
+const fallbackItems: MenuItem[] = [
+  {
+    id: "admin-dashboard-fallback",
+    code: "admin-dashboard",
+    label: "Tong quan",
+    path: "/admin",
+    icon: "LayoutDashboard",
+    parentId: null,
+    orderIndex: 1,
+    isActive: true,
+    roles: [],
+    createdAt: "",
+    updatedAt: "",
+    children: [],
+  },
+  {
+    id: "admin-content-fallback",
+    code: "admin-content",
+    label: "Noi dung hoc",
+    path: "/admin/sections",
+    icon: "BookOpen",
+    parentId: null,
+    orderIndex: 2,
+    isActive: true,
+    roles: [],
+    createdAt: "",
+    updatedAt: "",
+    children: [
+      {
+        id: "admin-sections-fallback",
+        code: "admin-sections",
+        label: "Khoa hoc",
+        path: "/admin/sections",
+        icon: "GraduationCap",
+        parentId: "admin-content-fallback",
+        orderIndex: 1,
+        isActive: true,
+        roles: [],
+        createdAt: "",
+        updatedAt: "",
+        children: [],
+      },
+      {
+        id: "admin-vocabulary-fallback",
+        code: "admin-vocabulary",
+        label: "Tu vung",
+        path: "/admin/vocabulary",
+        icon: "BookOpen",
+        parentId: "admin-content-fallback",
+        orderIndex: 2,
+        isActive: true,
+        roles: [],
+        createdAt: "",
+        updatedAt: "",
+        children: [],
+      },
+      {
+        id: "admin-flashcards-fallback",
+        code: "admin-flashcards",
+        label: "Flashcards",
+        path: "/admin/flashcards",
+        icon: "ScrollText",
+        parentId: "admin-content-fallback",
+        orderIndex: 3,
+        isActive: true,
+        roles: [],
+        createdAt: "",
+        updatedAt: "",
+        children: [],
+      },
+      {
+        id: "admin-quizzes-fallback",
+        code: "admin-quizzes",
+        label: "Bai kiem tra",
+        path: "/admin/quizzes",
+        icon: "FileQuestion",
+        parentId: "admin-content-fallback",
+        orderIndex: 4,
+        isActive: true,
+        roles: [],
+        createdAt: "",
+        updatedAt: "",
+        children: [],
+      },
+    ],
+  },
+  {
+    id: "admin-users-fallback",
+    code: "admin-users",
+    label: "Nhan su",
+    path: "/admin/users",
+    icon: "Users",
+    parentId: null,
+    orderIndex: 3,
+    isActive: true,
+    roles: [],
+    createdAt: "",
+    updatedAt: "",
+    children: [],
+  },
+  {
+    id: "admin-reports-fallback",
+    code: "admin-reports",
+    label: "Bao cao",
+    path: "/admin/reports",
+    icon: "BarChart3",
+    parentId: null,
+    orderIndex: 4,
+    isActive: true,
+    roles: [],
+    createdAt: "",
+    updatedAt: "",
+    children: [],
+  },
+  {
+    id: "admin-settings-fallback",
+    code: "admin-settings",
+    label: "Thiet lap",
+    path: "/admin/settings",
+    icon: "Settings",
+    parentId: null,
+    orderIndex: 5,
+    isActive: true,
+    roles: [],
+    createdAt: "",
+    updatedAt: "",
+    children: [],
+  },
+  {
+    id: "admin-roles-fallback",
+    code: "admin-roles",
+    label: "Roles & Permissions",
+    path: "/admin/roles",
+    icon: "KeyRound",
+    parentId: null,
+    orderIndex: 6,
+    isActive: true,
+    roles: [],
+    createdAt: "",
+    updatedAt: "",
+    children: [],
+  },
+];
 
 interface MenuItemComponentProps {
   item: MenuItem;
@@ -44,49 +201,49 @@ interface MenuItemComponentProps {
 
 function AdminMenuItem({ item, level = 0 }: MenuItemComponentProps) {
   const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(false);
   const hasChildren = item.children && item.children.length > 0;
-
   const isActive =
     pathname === item.path ||
     (item.path !== "/admin" && pathname.startsWith(item.path));
-
-  const IconComponent = item.icon ? iconMap[item.icon] : null;
-
-  const handleClick = () => {
-    if (hasChildren) {
-      setIsOpen(!isOpen);
-    }
-  };
+  const hasActiveChild = Boolean(
+    item.children?.some(
+      (child) =>
+        pathname === child.path ||
+        (child.path !== "/admin" && pathname.startsWith(child.path)),
+    ),
+  );
+  const [isOpen, setIsOpen] = useState(isActive || hasActiveChild);
+  const IconComponent = item.icon ? iconMap[item.icon] || LayoutDashboard : LayoutDashboard;
 
   if (hasChildren) {
     return (
       <div className="w-full">
         <button
-          onClick={handleClick}
+          onClick={() => setIsOpen((open) => !open)}
           className={cn(
-            "flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-            isActive
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground",
-            level > 0 && "ml-4 text-sm",
+            "flex h-10 w-full items-center justify-between rounded-md px-3 text-sm font-medium transition-colors",
+            isActive || hasActiveChild
+              ? "bg-blue-50 text-blue-700 dark:bg-primary/15 dark:text-primary"
+              : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-muted-foreground dark:hover:bg-muted dark:hover:text-foreground",
+            level > 0 && "ml-3 w-[calc(100%-0.75rem)]",
           )}
         >
-          <div className="flex items-center gap-3">
-            {IconComponent && <IconComponent className="h-4 w-4" />}
-            <span>{item.label}</span>
-          </div>
-          {isOpen ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
+          <span className="flex min-w-0 items-center gap-3">
+            <IconComponent className="h-4 w-4 shrink-0" />
+            <span className="truncate">{item.label}</span>
+          </span>
+          <ChevronDown
+            className={cn("h-4 w-4 shrink-0 transition-transform", !isOpen && "-rotate-90")}
+          />
         </button>
         {isOpen && (
-          <div className="mt-1 space-y-1">
-            {item.children.map((child) => (
-              <AdminMenuItem key={child.id} item={child} level={level + 1} />
-            ))}
+          <div className="mt-1 space-y-1 border-l border-slate-200 pl-2 dark:border-border">
+            {item.children
+              .slice()
+              .sort((a, b) => a.orderIndex - b.orderIndex)
+              .map((child) => (
+                <AdminMenuItem key={child.id} item={child} level={level + 1} />
+              ))}
           </div>
         )}
       </div>
@@ -97,15 +254,15 @@ function AdminMenuItem({ item, level = 0 }: MenuItemComponentProps) {
     <Link
       href={item.path}
       className={cn(
-        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+        "flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors",
         isActive
-          ? "bg-primary text-primary-foreground"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground",
-        level > 0 && "ml-4 text-sm",
+          ? "border-l-2 border-blue-600 bg-blue-50 text-blue-700 dark:border-primary dark:bg-primary/15 dark:text-primary"
+          : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-muted-foreground dark:hover:bg-muted dark:hover:text-foreground",
+        level > 0 && "ml-3 h-9 w-[calc(100%-0.75rem)] text-xs",
       )}
     >
-      {IconComponent && <IconComponent className="h-4 w-4" />}
-      <span>{item.label}</span>
+      <IconComponent className="h-4 w-4 shrink-0" />
+      <span className="truncate">{item.label}</span>
     </Link>
   );
 }
@@ -115,23 +272,80 @@ interface AdminSidebarProps {
   isLoading?: boolean;
 }
 
+function buildAdminTree(items: MenuItem[]) {
+  const adminItems = items.filter(
+    (item) => item.code.startsWith("admin-") || item.path.startsWith("/admin"),
+  );
+  const sourceItems = adminItems.length > 0 ? adminItems : fallbackItems;
+  const itemById = new Map<string, MenuItem>();
+
+  sourceItems.forEach((item) => {
+    itemById.set(item.id, { ...item, children: [...(item.children || [])] });
+  });
+
+  itemById.forEach((item) => {
+    item.children.forEach((child) => {
+      if (!itemById.has(child.id)) {
+        itemById.set(child.id, { ...child, children: [...(child.children || [])] });
+      }
+    });
+  });
+
+  if (![...itemById.values()].some((item) => item.path === "/admin/roles")) {
+    const adminRoot = itemById.get("admin-dashboard-fallback")
+      ? "admin-dashboard-fallback"
+      : [...itemById.values()].find((item) => item.code === "admin-dashboard")?.id;
+
+    itemById.set("admin-roles-synthetic", {
+      id: "admin-roles-synthetic",
+      code: "admin-roles",
+      label: "Roles & Permissions",
+      path: "/admin/roles",
+      icon: "KeyRound",
+      parentId: adminRoot || null,
+      orderIndex: 108,
+      isActive: true,
+      roles: [],
+      createdAt: "",
+      updatedAt: "",
+      children: [],
+    });
+  }
+
+  const roots: MenuItem[] = [];
+
+  itemById.forEach((item) => {
+    const parent = item.parentId ? itemById.get(item.parentId) : null;
+
+    if (parent) {
+      const alreadyLinked = parent.children.some((child) => child.id === item.id);
+      if (!alreadyLinked) {
+        parent.children = [...parent.children, item].sort(
+          (a, b) => a.orderIndex - b.orderIndex,
+        );
+      }
+      return;
+    }
+
+    roots.push(item);
+  });
+
+  return roots.sort((a, b) => a.orderIndex - b.orderIndex);
+}
+
 export function AdminSidebar({
   adminMenuItems,
   isLoading = false,
 }: AdminSidebarProps) {
   const pathname = usePathname();
-
-  const adminItems = adminMenuItems.filter(
-    (item) => item.code.startsWith("admin-") || item.path.startsWith("/admin"),
-  );
-
+  const adminItems = buildAdminTree(adminMenuItems);
   const isQueueActive =
     pathname === "/admin/queues" || pathname.startsWith("/admin/queues/");
 
   if (isLoading) {
     return (
-      <aside className="w-64 shrink-0">
-        <div className="flex h-32 items-center justify-center rounded-lg border bg-card p-2">
+      <aside className="hidden w-[204px] shrink-0 border-r border-slate-200 bg-white lg:block dark:border-border dark:bg-card">
+        <div className="flex h-32 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </aside>
@@ -139,28 +353,53 @@ export function AdminSidebar({
   }
 
   return (
-    <aside className="w-64 shrink-0">
-      <nav className="sticky top-6 space-y-1 bg-card rounded-lg border p-2">
-        {adminItems.map((item) => (
-          <AdminMenuItem key={item.id} item={item} />
-        ))}
-
-        {/* Static Queue Monitoring Link */}
-        <div className="border-t my-2 pt-2">
-          <Link
-            href="/admin/queues"
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-              isQueueActive
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
-          >
-            <Zap className="h-4 w-4" />
-            <span>Queue Monitor</span>
+    <aside className="hidden w-[204px] shrink-0 border-r border-slate-200 bg-white shadow-sm lg:block dark:border-border dark:bg-card">
+      <div className="sticky top-0 flex h-screen flex-col">
+        <div className="flex h-[70px] items-center justify-center border-b border-slate-100 px-4 dark:border-border">
+          <Link href="/admin" className="flex items-center gap-3">
+            <div className="relative flex h-11 w-11 items-center justify-center rounded-full border border-blue-100 bg-white shadow-sm">
+              <div className="h-7 w-7 rounded-full bg-[conic-gradient(from_20deg,#facc15_0_28%,#2563eb_0_58%,#38bdf8_0_76%,#facc15_0)]" />
+            </div>
+            <div className="leading-tight">
+              <p className="text-sm font-bold tracking-[0.08em] text-slate-800 dark:text-foreground">
+                ENGLISH
+              </p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-600">
+                Admin
+              </p>
+            </div>
           </Link>
         </div>
-      </nav>
+
+        <button
+          type="button"
+          className="absolute -right-3 top-6 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm dark:border-border dark:bg-card"
+          aria-label="Thu gon menu"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+        </button>
+
+        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-2 py-4">
+          {adminItems.map((item) => (
+            <AdminMenuItem key={item.id} item={item} />
+          ))}
+
+          <div className="my-3 border-t border-slate-100 pt-3 dark:border-border">
+            <Link
+              href="/admin/queues"
+              className={cn(
+                "flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors",
+                isQueueActive
+                  ? "border-l-2 border-blue-600 bg-blue-50 text-blue-700 dark:border-primary dark:bg-primary/15 dark:text-primary"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-muted-foreground dark:hover:bg-muted dark:hover:text-foreground",
+              )}
+            >
+              <Zap className="h-4 w-4 shrink-0" />
+              <span className="truncate">Queue Monitor</span>
+            </Link>
+          </div>
+        </nav>
+      </div>
     </aside>
   );
 }

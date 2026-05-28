@@ -1,15 +1,15 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationsApi } from '@/features/notifications/api/notifications.api';
-import { Bell, Check, CheckCheck } from 'lucide-react';
+import { Bell, CheckCheck } from 'lucide-react';
 import { cn } from '@/utils';
 
 export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
   const { data: unreadData } = useQuery({
@@ -40,39 +40,35 @@ export function NotificationBell() {
 
   const unreadCount = unreadData?.data?.count || 0;
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-lg hover:bg-muted transition-colors"
-      >
-        <Bell className="h-5 w-5" />
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 dark:bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
-        )}
-      </button>
+    <DropdownMenu.Root open={isOpen} onOpenChange={setIsOpen}>
+      <DropdownMenu.Trigger asChild>
+        <button
+          type="button"
+          className="relative rounded-lg p-2 transition-colors hover:bg-muted data-[state=open]:bg-accent data-[state=open]:text-accent-foreground data-[state=open]:ring-2 data-[state=open]:ring-ring/30"
+        >
+          <Bell className="h-5 w-5" />
+          {unreadCount > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white dark:bg-red-600">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </button>
+      </DropdownMenu.Trigger>
 
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-background border rounded-lg shadow-lg z-50">
-          <div className="flex items-center justify-between p-4 border-b">
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          align="end"
+          sideOffset={8}
+          className="z-50 w-80 overflow-hidden rounded-lg border bg-popover text-popover-foreground shadow-lg"
+        >
+          <div className="flex items-center justify-between border-b p-4">
             <h3 className="font-semibold">Notifications</h3>
             {unreadCount > 0 && (
               <button
+                type="button"
                 onClick={() => markAllAsReadMutation.mutate()}
-                className="text-xs text-primary hover:underline flex items-center gap-1"
+                className="flex items-center gap-1 text-xs text-primary hover:underline"
               >
                 <CheckCheck className="h-3 w-3" />
                 Mark all read
@@ -83,10 +79,10 @@ export function NotificationBell() {
           <div className="max-h-96 overflow-y-auto">
             {notifications?.data?.data?.length ? (
               notifications.data.data.map((notification) => (
-                <div
+                <DropdownMenu.Item
                   key={notification.id}
                   className={cn(
-                    'p-4 border-b last:border-b-0 hover:bg-muted/50 cursor-pointer',
+                    'cursor-pointer border-b p-4 outline-none last:border-b-0 hover:bg-muted/50 focus:bg-muted/50',
                     !notification.isRead && 'bg-primary/5'
                   )}
                   onClick={() => {
@@ -111,7 +107,7 @@ export function NotificationBell() {
                       </p>
                     </div>
                   </div>
-                </div>
+                </DropdownMenu.Item>
               ))
             ) : (
               <div className="p-8 text-center text-muted-foreground">
@@ -121,15 +117,16 @@ export function NotificationBell() {
             )}
           </div>
 
-          <Link
-            href="/notifications"
-            className="block p-3 text-center text-sm text-primary hover:bg-muted/50 border-t"
-            onClick={() => setIsOpen(false)}
-          >
-            View all notifications
-          </Link>
-        </div>
-      )}
-    </div>
+          <DropdownMenu.Item asChild>
+            <Link
+              href="/notifications"
+              className="block border-t p-3 text-center text-sm text-primary outline-none hover:bg-muted/50 focus:bg-muted/50"
+            >
+              View all notifications
+            </Link>
+          </DropdownMenu.Item>
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   );
 }

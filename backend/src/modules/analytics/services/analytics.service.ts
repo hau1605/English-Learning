@@ -11,7 +11,7 @@ export class AnalyticsService {
   ) {}
 
   async getUserStats(userId: string) {
-    const cacheKey = `analytics:user:${userId}`;
+    const cacheKey = CACHE_KEYS.ANALYTICS.USER(userId);
 
     const cached = await this.redis.getJson(cacheKey);
     if (cached) {
@@ -51,7 +51,7 @@ export class AnalyticsService {
       ? CACHE_KEYS.LEADERBOARD.GLOBAL
       : type === 'weekly'
         ? CACHE_KEYS.LEADERBOARD.WEEKLY
-        : 'leaderboard:monthly';
+        : CACHE_KEYS.LEADERBOARD.MONTHLY;
 
     const cached = await this.redis.getJson(cacheKey);
     if (cached) {

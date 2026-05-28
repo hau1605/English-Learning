@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { authApi, LoginRequest, RegisterRequest } from '@/features/auth/api/auth.api';
 import { useAuthStore } from '@/stores/auth.store';
+import { useMenuStore } from '@/stores/menu.store';
 import { tokenStorage } from '@/stores/token-storage';
 import { toast } from 'sonner';
 
@@ -70,12 +71,14 @@ export function useLogout() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const logout = useAuthStore((state) => state.logout);
+  const clearMenu = useMenuStore((state) => state.clearMenu);
 
   return useMutation({
     mutationFn: () => authApi.logout(),
     onSuccess: () => {
       tokenStorage.clearAccessToken();
       logout();
+      clearMenu();
       queryClient.clear();
       toast.success('Logged out successfully');
       router.push('/login');
@@ -83,6 +86,7 @@ export function useLogout() {
     onError: () => {
       tokenStorage.clearAccessToken();
       logout();
+      clearMenu();
       router.push('/login');
     },
   });

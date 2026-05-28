@@ -13,6 +13,7 @@ export interface MenuItemWithRoleAccess {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  parent?: { id: string; code: string; label: string } | null;
   roleAccess: (RoleMenuAccess & { role: { id: string; code: string; name: string } })[];
   children?: MenuItemWithRoleAccess[];
 }
@@ -144,6 +145,9 @@ export class MenuRepository {
           : undefined,
       },
       include: {
+        parent: {
+          select: { id: true, code: true, label: true },
+        },
         roleAccess: {
           include: {
             role: { select: { id: true, code: true, name: true } },
@@ -192,6 +196,9 @@ export class MenuRepository {
               : undefined,
       },
       include: {
+        parent: {
+          select: { id: true, code: true, label: true },
+        },
         roleAccess: {
           include: {
             role: { select: { id: true, code: true, name: true } },

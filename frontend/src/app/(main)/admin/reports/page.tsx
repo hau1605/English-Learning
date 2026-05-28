@@ -39,6 +39,7 @@ import {
 import { useEffect, useState as useStateEffect } from "react";
 
 const COLORS = ["#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981"];
+const chartContainerClass = "h-64 min-h-64 w-full min-w-0 sm:h-72";
 
 export default function AdminReportsPage() {
   const [mounted, setMounted] = useStateEffect(false);
@@ -159,7 +160,7 @@ export default function AdminReportsPage() {
       </Card>
 
       <Tabs defaultValue="engagement" className="space-y-4">
-        <TabsList>
+        <TabsList className="w-full justify-start overflow-x-auto sm:w-auto">
           <TabsTrigger value="engagement">User Engagement</TabsTrigger>
           <TabsTrigger value="quiz">Quiz Performance</TabsTrigger>
           <TabsTrigger value="progress">Learning Progress</TabsTrigger>
@@ -168,7 +169,7 @@ export default function AdminReportsPage() {
         {/* User Engagement Tab */}
         <TabsContent value="engagement" className="space-y-4">
           {/* Summary Cards */}
-          <div className="grid gap-6 md:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -239,7 +240,7 @@ export default function AdminReportsPage() {
           </div>
 
           {/* Charts */}
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid min-w-0 gap-4 xl:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">
@@ -247,8 +248,13 @@ export default function AdminReportsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-72">
-                  <ResponsiveContainer width="100%" height="100%">
+                <div className={chartContainerClass}>
+                  <ResponsiveContainer
+                    width="100%"
+                    height={288}
+                    minWidth={0}
+                    minHeight={240}
+                  >
                     <LineChart data={engagementChartData}>
                       <CartesianGrid
                         strokeDasharray="3 3"
@@ -280,8 +286,13 @@ export default function AdminReportsPage() {
                 <CardTitle className="text-lg">XP Earned Trend</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-72">
-                  <ResponsiveContainer width="100%" height="100%">
+                <div className={chartContainerClass}>
+                  <ResponsiveContainer
+                    width="100%"
+                    height={288}
+                    minWidth={0}
+                    minHeight={240}
+                  >
                     <BarChart data={engagementChartData}>
                       <CartesianGrid
                         strokeDasharray="3 3"
@@ -302,7 +313,7 @@ export default function AdminReportsPage() {
         {/* Quiz Performance Tab */}
         <TabsContent value="quiz" className="space-y-4">
           {/* Summary Cards */}
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-4 lg:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -360,8 +371,13 @@ export default function AdminReportsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className={chartContainerClass}>
+                <ResponsiveContainer
+                  width="100%"
+                  height={288}
+                  minWidth={0}
+                  minHeight={240}
+                >
                   <BarChart data={quizScoreData} layout="vertical">
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -394,7 +410,7 @@ export default function AdminReportsPage() {
         {/* Learning Progress Tab */}
         <TabsContent value="progress" className="space-y-4">
           {/* Summary Cards */}
-          <div className="grid gap-6 md:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -457,7 +473,7 @@ export default function AdminReportsPage() {
           </div>
 
           {/* Charts */}
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid min-w-0 gap-4 xl:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">
@@ -465,8 +481,13 @@ export default function AdminReportsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
+                <div className={chartContainerClass}>
+                  <ResponsiveContainer
+                    width="100%"
+                    height={288}
+                    minWidth={0}
+                    minHeight={240}
+                  >
                     <PieChart>
                       <Pie
                         data={difficultyData}
@@ -476,7 +497,7 @@ export default function AdminReportsPage() {
                         outerRadius={80}
                         paddingAngle={5}
                         dataKey="value"
-                        label={({ name, percent }) =>
+                        label={({ name, percent = 0 }) =>
                           `${name} ${(percent * 100).toFixed(0)}%`
                         }
                       >

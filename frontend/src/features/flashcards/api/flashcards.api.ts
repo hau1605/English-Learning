@@ -11,6 +11,11 @@ export interface FlashcardStats {
 export interface DueFlashcard {
   id: string;
   flashcardId: string;
+  nextReviewAt?: string;
+  lastReviewedAt?: string | null;
+  totalReviews?: number;
+  correctStreak?: number;
+  wrongCount?: number;
   flashcard: {
     id: string;
     frontContent: string;

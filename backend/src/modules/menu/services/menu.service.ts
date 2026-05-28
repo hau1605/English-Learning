@@ -1,8 +1,20 @@
-import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
-import { MenuRepository, MenuItemWithRoleAccess } from '@/modules/menu/repositories/menu.repository';
-import { RedisService } from '@/common/redis/redis.service';
-import { CACHE_KEYS, CACHE_TTL } from '@/common/constants/cache-keys';
-import { CreateMenuItemDto, UpdateMenuItemDto, ReorderMenuItemDto } from '@/modules/menu/dto/menu-item.dto';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  Logger,
+} from "@nestjs/common";
+import {
+  MenuRepository,
+  MenuItemWithRoleAccess,
+} from "@/modules/menu/repositories/menu.repository";
+import { RedisService } from "@/common/redis/redis.service";
+import { CACHE_KEYS, CACHE_TTL } from "@/common/constants/cache-keys";
+import {
+  CreateMenuItemDto,
+  UpdateMenuItemDto,
+  ReorderMenuItemDto,
+} from "@/modules/menu/dto/menu-item.dto";
 
 export interface MenuItemResponse {
   id: string;
@@ -12,6 +24,7 @@ export interface MenuItemResponse {
   path: string;
   orderIndex: number;
   parentId: string | null;
+  parent: { id: string; code: string; label: string } | null;
   isActive: boolean;
   children: MenuItemResponse[];
   roles: { id: string; code: string; name: string }[];
@@ -26,7 +39,10 @@ export class MenuService {
     private readonly redis: RedisService,
   ) {}
 
-  private formatMenuItem(item: MenuItemWithRoleAccess): MenuItemResponse {
+  private formatMenuItem(
+    item: MenuItemWithRoleAccess,
+    children: MenuItemResponse[] = [],
+  ): MenuItemResponse {
     return {
       id: item.id,
       code: item.code,
@@ -35,10 +51,9 @@ export class MenuService {
       path: item.path,
       orderIndex: item.orderIndex,
       parentId: item.parentId,
+      parent: (item as any).parent || null,
       isActive: item.isActive,
-      children: (item.children || [])
-        .sort((a: any, b: any) => a.orderIndex - b.orderIndex)
-        .map((child: any) => this.formatMenuItem(child)),
+      children,
       roles: (item.roleAccess || []).map((ra: any) => ({
         id: ra.role.id,
         code: ra.role.code,
@@ -47,33 +62,41 @@ export class MenuService {
     };
   }
 
-  private buildTree(items: MenuItemWithRoleAccess[], parentId: string | null = null): MenuItemResponse[] {
+  private buildTree(
+    items: MenuItemWithRoleAccess[],
+    parentId: string | null = null,
+  ): MenuItemResponse[] {
     return items
       .filter((item) => item.parentId === parentId)
       .sort((a, b) => a.orderIndex - b.orderIndex)
-      .map((item) => this.formatMenuItem(item));
+      .map((item) => this.formatMenuItem(item, this.buildTree(items, item.id)));
   }
 
-  async getAllMenus(includeInactive: boolean = false): Promise<MenuItemResponse[]> {
-    const cacheKey = includeInactive ? `${CACHE_KEYS.MENU.ALL}:admin` : CACHE_KEYS.MENU.ALL;
-    
+  async getAllMenus(
+    includeInactive: boolean = false,
+  ): Promise<MenuItemResponse[]> {
+    const cacheKey = includeInactive
+      ? `${CACHE_KEYS.MENU.ALL}:admin:v2`
+      : `${CACHE_KEYS.MENU.ALL}:v2`;
+
     const cached = await this.redis.getJson<MenuItemResponse[]>(cacheKey);
     if (cached) {
-      this.logger.debug('Menu cache hit');
+      this.logger.debug("Menu cache hit");
       return cached;
     }
 
     const items = await this.menuRepository.findAll(includeInactive);
+    console.log("Fetched all menu items from DB:", items); // Debug log
     const tree = this.buildTree(items, null);
 
     await this.redis.setJson(cacheKey, tree, CACHE_TTL.EXTRA_LONG);
-    
+
     return tree;
   }
 
   async getMenuById(id: string): Promise<MenuItemResponse> {
     const item = await this.menuRepository.findById(id);
-    
+
     if (!item) {
       throw new NotFoundException(`Menu item with id ${id} not found`);
     }
@@ -86,11 +109,11 @@ export class MenuService {
       return [];
     }
 
-    const cacheKey = CACHE_KEYS.MENU.USER(roleCodes);
-    
+    const cacheKey = `${CACHE_KEYS.MENU.USER(roleCodes)}:v2`;
+
     const cached = await this.redis.getJson<MenuItemResponse[]>(cacheKey);
     if (cached) {
-      this.logger.debug(`Menu cache hit for roles: ${roleCodes.join(',')}`);
+      this.logger.debug(`Menu cache hit for roles: ${roleCodes.join(",")}`);
       return cached;
     }
 
@@ -123,16 +146,21 @@ export class MenuService {
   async createMenuItem(dto: CreateMenuItemDto): Promise<MenuItemResponse> {
     const existing = await this.menuRepository.findByCode(dto.code);
     if (existing) {
-      throw new ConflictException(`Menu item with code ${dto.code} already exists`);
+      throw new ConflictException(
+        `Menu item with code ${dto.code} already exists`,
+      );
     }
 
     const roles = await this.menuRepository.getAllRoles();
     const roleMap = new Map(roles.map((r) => [r.code, r]));
-    const roleIds = dto.roleCodes
-      ?.map((code) => roleMap.get(code)?.id)
-      .filter((id): id is string => !!id) || [];
+    const roleIds =
+      dto.roleCodes
+        ?.map((code) => roleMap.get(code)?.id)
+        .filter((id): id is string => !!id) || [];
 
-    const orderIndex = dto.orderIndex ?? (await this.menuRepository.getMaxOrderIndex(dto.parentId)) + 1;
+    const orderIndex =
+      dto.orderIndex ??
+      (await this.menuRepository.getMaxOrderIndex(dto.parentId)) + 1;
 
     const item = await this.menuRepository.create({
       code: dto.code,
@@ -150,7 +178,10 @@ export class MenuService {
     return this.formatMenuItem(item);
   }
 
-  async updateMenuItem(id: string, dto: UpdateMenuItemDto): Promise<MenuItemResponse> {
+  async updateMenuItem(
+    id: string,
+    dto: UpdateMenuItemDto,
+  ): Promise<MenuItemResponse> {
     const existing = await this.menuRepository.findById(id);
     if (!existing) {
       throw new NotFoundException(`Menu item with id ${id} not found`);
@@ -159,13 +190,16 @@ export class MenuService {
     if (dto.code && dto.code !== existing.code) {
       const codeExists = await this.menuRepository.findByCode(dto.code);
       if (codeExists) {
-        throw new ConflictException(`Menu item with code ${dto.code} already exists`);
+        throw new ConflictException(
+          `Menu item with code ${dto.code} already exists`,
+        );
       }
     }
 
-    const roles = dto.roleCodes !== undefined
-      ? await this.getRoleIdsFromCodes(dto.roleCodes)
-      : undefined;
+    const roles =
+      dto.roleCodes !== undefined
+        ? await this.getRoleIdsFromCodes(dto.roleCodes)
+        : undefined;
 
     const item = await this.menuRepository.update(id, {
       code: dto.code,
@@ -221,8 +255,10 @@ export class MenuService {
     await Promise.all([
       this.redis.del(CACHE_KEYS.MENU.ALL),
       this.redis.del(`${CACHE_KEYS.MENU.ALL}:admin`),
-      this.redis.delPattern('menu:user:*'),
+      this.redis.del(`${CACHE_KEYS.MENU.ALL}:v2`),
+      this.redis.del(`${CACHE_KEYS.MENU.ALL}:admin:v2`),
+      this.redis.delPattern("menu:user:*"),
     ]);
-    this.logger.debug('Menu cache invalidated');
+    this.logger.debug("Menu cache invalidated");
   }
 }

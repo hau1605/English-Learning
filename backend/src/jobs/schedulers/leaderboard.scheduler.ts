@@ -3,7 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '@/prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { RedisService } from '@/common/redis/redis.service';
-import { CACHE_TTL } from '@/common/constants/cache-keys';
+import { CACHE_KEYS, CACHE_TTL } from '@/common/constants/cache-keys';
 
 @Injectable()
 export class LeaderboardScheduler {
@@ -52,7 +52,7 @@ export class LeaderboardScheduler {
 
       // Update Redis cache
       await this.redis.setJson(
-        'leaderboard:global',
+        CACHE_KEYS.LEADERBOARD.GLOBAL_LIMIT(100),
         rankings,
         CACHE_TTL.SHORT,
       );
@@ -69,7 +69,7 @@ export class LeaderboardScheduler {
     this.logger.log('Broadcasting leaderboard update...');
 
     try {
-      const rankings = await this.redis.getJson('leaderboard:global');
+      const rankings = await this.redis.getJson(CACHE_KEYS.LEADERBOARD.GLOBAL_LIMIT(100));
 
       if (rankings) {
         this.eventEmitter.emit('leaderboard.updated', {

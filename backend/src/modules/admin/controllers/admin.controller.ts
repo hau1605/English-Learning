@@ -249,9 +249,20 @@ export class AdminController {
   async updateSystemSetting(
     @Req() req: any,
     @Param('key') key: string,
-    @Body() { value }: { value: any },
+    @Body()
+    {
+      value,
+      type,
+      category,
+      isPublic,
+    }: { value: any; type?: string; category?: string; isPublic?: boolean },
   ) {
-    const setting = await this.adminService.updateSystemSetting(key, value);
+    const setting = await this.adminService.updateSystemSetting(key, {
+      value,
+      type,
+      category,
+      isPublic,
+    });
     await this.auditService.log({
       action: 'admin.settings.update',
       entityType: 'system_setting',
@@ -262,6 +273,24 @@ export class AdminController {
     return {
       message: 'Setting updated',
       data: setting,
+    };
+  }
+
+  @Delete('settings/:key')
+  @Permissions('settings.update')
+  @ApiOperation({ summary: 'Delete system setting' })
+  @ApiResponse({ status: 200, description: 'Setting deleted' })
+  async deleteSystemSetting(@Req() req: any, @Param('key') key: string) {
+    await this.adminService.deleteSystemSetting(key);
+    await this.auditService.log({
+      action: 'admin.settings.delete',
+      entityType: 'system_setting',
+      entityId: key,
+      metadata: { key },
+      context: this.auditContext(req),
+    });
+    return {
+      message: 'Setting deleted',
     };
   }
 

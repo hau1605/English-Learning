@@ -20,6 +20,9 @@ export class QuizRepository {
     return this.prisma.quiz.findUnique({
       where: { id },
       include: {
+        lesson: {
+          select: { id: true, title: true },
+        },
         questions: {
           orderBy: { orderIndex: 'asc' },
           include: {
@@ -36,6 +39,9 @@ export class QuizRepository {
     return this.prisma.quiz.findUnique({
       where: { id },
       include: {
+        lesson: {
+          select: { id: true, title: true },
+        },
         questions: {
           orderBy: { orderIndex: 'asc' },
           include: {
@@ -171,6 +177,9 @@ export class QuizRepository {
         }),
       },
       include: {
+        lesson: {
+          select: { id: true, title: true },
+        },
         questions: {
           include: {
             answers: true,
@@ -206,6 +215,9 @@ export class QuizRepository {
       where: { id },
       data: updateData,
       include: {
+        lesson: {
+          select: { id: true, title: true },
+        },
         questions: {
           include: {
             answers: true,

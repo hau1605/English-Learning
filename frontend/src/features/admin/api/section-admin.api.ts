@@ -3,6 +3,7 @@ import { api, ApiResponse } from '@/services/api';
 export interface Section {
   id: string;
   courseId: string;
+  course?: { id: string; title: string };
   title: string;
   description?: string;
   orderIndex: number;
@@ -14,6 +15,11 @@ export interface Section {
 export interface Lesson {
   id: string;
   sectionId: string;
+  section?: {
+    id: string;
+    title: string;
+    course?: { id: string; title: string };
+  };
   title: string;
   description?: string;
   type: 'VIDEO' | 'READING' | 'INTERACTIVE' | 'PRACTICE' | 'QUIZ';

@@ -1,13 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
+import { RedisService } from '@/common/redis/redis.service';
 import { PaginationParams, PaginatedResult } from '@/common/interfaces';
 import { UpdateUserDto } from '@/modules/users/dto/update-user.dto';
 import { SafeUserDto } from '@/modules/users/dto/safe-user.dto';
 import { User } from '@prisma/client';
+import { CACHE_KEYS, CACHE_TTL } from '@/common/constants/cache-keys';
 
 @Injectable()
 export class UsersRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   private toSafeUser(user: User & { userRoles?: { role: { code: string } }[] }): SafeUserDto {
     return {
@@ -24,6 +29,12 @@ export class UsersRepository {
   }
 
   async findById(id: string) {
+    const cacheKey = CACHE_KEYS.USER.PROFILE(id);
+    const cached = await this.redis.getJson<SafeUserDto>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id },
       include: {
@@ -37,7 +48,9 @@ export class UsersRepository {
 
     if (!user) return null;
 
-    return this.toSafeUser(user);
+    const safeUser = this.toSafeUser(user);
+    await this.redis.setJson(cacheKey, safeUser, CACHE_TTL.LONG);
+    return safeUser;
   }
 
   async findByEmail(email: string) {
@@ -56,7 +69,16 @@ export class UsersRepository {
         avatarUrl: dto.avatarUrl,
       },
     });
+
+    // Invalidate user cache
+    await this.invalidateUserCache(id);
+
     return this.toSafeUser(user);
+  }
+
+  async invalidateUserCache(userId: string): Promise<void> {
+    await this.redis.del(CACHE_KEYS.USER.PROFILE(userId));
+    await this.redis.del(CACHE_KEYS.USER.PERMISSIONS(userId));
   }
 
   async findAll(params: PaginationParams): Promise<PaginatedResult<SafeUserDto>> {
