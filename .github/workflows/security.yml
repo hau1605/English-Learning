@@ -79,7 +79,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       security-events: write
-      actions: read
+      actions: write
       contents: read
 
     steps:
