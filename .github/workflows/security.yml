@@ -10,12 +10,12 @@ env:
   NODE_VERSION: '20'
 
 jobs:
-  dependency-check:
-    name: Dependency Vulnerability Scan
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
+  # dependency-check:
+  #   name: Dependency Vulnerability Scan
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: backend
 
     # steps:
     #   - uses: actions/checkout@v4
