@@ -29,7 +29,7 @@ import { toast } from "sonner";
 import { AdminDataTable } from "@/components/admin/admin-data-table";
 
 const difficultyOptions = [
-  { value: "all", label: "Tat ca level" },
+  { value: "all", label: "Tất cả level" },
   { value: "1", label: "1" },
   { value: "2", label: "2" },
   { value: "3", label: "3" },
@@ -250,7 +250,7 @@ export default function AdminVocabularyPage() {
   if (activeTab === "topics") {
     return (
       <AdminDataTable
-        title="Quan ly topics"
+        title="Quản lý topics"
         data={topics?.data || []}
         isLoading={topicsLoading}
         total={topics?.data?.length || 0}
@@ -329,7 +329,7 @@ export default function AdminVocabularyPage() {
 
   return (
     <AdminDataTable
-      title="Quan ly vocabulary"
+      title="Quản lý vocabulary"
       data={vocabData?.data || []}
       isLoading={vocabLoading}
       total={vocabData?.meta?.total || 0}
@@ -384,7 +384,7 @@ export default function AdminVocabularyPage() {
             options={difficultyOptions}
           />
           <div className="relative">
-            <Input value={search} onChange={(event) => { setPage(1); setSearch(event.target.value); }} className="h-9 w-full rounded border-slate-200 bg-white pr-9 text-xs shadow-none dark:border-border dark:bg-background lg:w-[240px]" placeholder="Tim theo tu khoa..." />
+            <Input value={search} onChange={(event) => { setPage(1); setSearch(event.target.value); }} className="h-9 w-full rounded border-slate-200 bg-white pr-9 text-xs shadow-none dark:border-border dark:bg-background lg:w-[240px]" placeholder="Tìm theo từ khóa..." />
             <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           </div>
           <Dialog open={isVocabDialogOpen} onOpenChange={setIsVocabDialogOpen}>

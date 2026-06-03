@@ -3,8 +3,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useCurrentUser, useLogout } from '@/features/auth/hooks/use-auth.hook';
-import { useAuthBootstrap } from '@/features/auth/hooks/use-auth-bootstrap.hook';
+import { useLogout } from '@/features/auth/hooks/use-auth.hook';
 import { useAuthStore } from '@/stores/auth.store';
 import { useMenuStore } from '@/stores/menu.store';
 import { DynamicSidebar } from '@/components/sidebar/dynamic-sidebar';
@@ -22,25 +21,21 @@ import {
 export function MainLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isLoading: authLoading } = useAuthBootstrap({
-    redirectTo: '/login',
-  });
-  const { data: currentUser } = useCurrentUser();
   const logoutMutation = useLogout();
-  const { user, setUser } = useAuthStore();
-  const { menuItems, isLoading, hasLoaded, fetchMenuForUser } = useMenuStore();
+  const { user, authReady, isLoading: authLoading } = useAuthStore();
+  const { menuItems, isLoading: menuLoading, hasLoaded, fetchMenuForUser } = useMenuStore();
 
   useEffect(() => {
-    if (currentUser) {
-      setUser(currentUser);
-    }
-  }, [currentUser, setUser]);
-
-  useEffect(() => {
-    if (user && !authLoading && !hasLoaded && !isLoading) {
+    if (user && !hasLoaded && !menuLoading) {
       fetchMenuForUser();
     }
-  }, [user, authLoading, hasLoaded, isLoading, fetchMenuForUser]);
+  }, [user, hasLoaded, menuLoading, fetchMenuForUser]);
+
+  useEffect(() => {
+    if (authReady && !user) {
+      router.push('/login');
+    }
+  }, [authReady, router, user]);
 
   useEffect(() => {
     if (menuItems.length > 0) {
@@ -64,7 +59,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
     }
   }, [menuItems, pathname, router]);
 
-  if (authLoading) {
+  if (!authReady || authLoading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -77,7 +72,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
       {/* Dynamic Sidebar */}
       <DynamicSidebar
         userMenuItems={menuItems}
-        isLoading={isLoading}
+        isLoading={menuLoading}
         showUserSection={false}
       />
 

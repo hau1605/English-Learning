@@ -90,8 +90,15 @@ services:
       S3_BUCKET: english-learning
       S3_REGION: us-east-1
       S3_PUBLIC_URL: http://localhost:9000
+      RATE_LIMIT_ENABLED: "false"
       THROTTLE_TTL: 60000
       THROTTLE_LIMIT: 100
+      AUTH_THROTTLE_TTL: 60000
+      AUTH_THROTTLE_LIMIT: 5
+      AUTH_REFRESH_THROTTLE_TTL: 60000
+      AUTH_REFRESH_THROTTLE_LIMIT: 20
+      READ_API_THROTTLE_TTL: 60000
+      READ_API_THROTTLE_LIMIT: 60
       LOG_LEVEL: debug
       ENABLE_HTTPS: "false"
       TRUST_PROXY: "false"

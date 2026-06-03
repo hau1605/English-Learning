@@ -1,7 +1,8 @@
-import { Controller, Get, Patch, Post, Param, Query, UseGuards, Req } from '@nestjs/common';
+import { Controller, Delete, Get, Patch, Post, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { NotificationsService } from '@/modules/notifications/services/notifications.service';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
+import { ReadApiThrottle } from '@/common/decorators/rate-limit.decorator';
 
 @ApiTags('notifications')
 @ApiBearerAuth()
@@ -33,6 +34,7 @@ export class NotificationsController {
   }
 
   @Get('unread-count')
+  @ReadApiThrottle()
   @ApiOperation({ summary: 'Get unread notification count' })
   @ApiResponse({ status: 200, description: 'Count retrieved' })
   async getUnreadCount(@Req() req: Request & { user: { id: string } }) {
@@ -63,6 +65,19 @@ export class NotificationsController {
     await this.notificationsService.markAllAsRead(req.user.id);
     return {
       message: 'All notifications marked as read',
+    };
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete notification for current user' })
+  @ApiResponse({ status: 200, description: 'Notification deleted' })
+  async deleteNotification(
+    @Req() req: Request & { user: { id: string } },
+    @Param('id') id: string,
+  ) {
+    await this.notificationsService.deleteForUser(req.user.id, id);
+    return {
+      message: 'Notification deleted',
     };
   }
 }

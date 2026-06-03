@@ -163,7 +163,7 @@ export default function AdminFlashcardsPage() {
   return (
     <>
       <AdminDataTable
-        title="Quan ly flashcards"
+        title="Quản lý flashcards"
         data={flashcards?.data || []}
         isLoading={isLoading}
         total={flashcards?.meta?.total || 0}
@@ -254,7 +254,7 @@ export default function AdminFlashcardsPage() {
                 value={search}
                 onChange={(event) => { setPage(1); setSearch(event.target.value); }}
                 className="h-9 w-full rounded border-slate-200 bg-white pr-9 text-xs shadow-none dark:border-border dark:bg-background lg:w-[260px]"
-                placeholder="Tim theo tu khoa..."
+                placeholder="`Tìm theo từ khóa`..."
               />
               <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             </div>

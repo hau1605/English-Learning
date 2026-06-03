@@ -190,6 +190,29 @@ export class SpeakingService {
       });
 
       const xpEarned = Math.max(5, Math.round(wordCount / 2));
+      const speakingMinutes = Math.max(1, Math.ceil(wordCount / 120));
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      await this.prisma.userDailyStat.upsert({
+        where: {
+          userId_date: {
+            userId: attempt.userId,
+            date: today,
+          },
+        },
+        create: {
+          userId: attempt.userId,
+          date: today,
+          speakingMinutes,
+          xpEarned,
+        },
+        update: {
+          speakingMinutes: { increment: speakingMinutes },
+          xpEarned: { increment: xpEarned },
+        },
+      });
 
       if (xpEarned > 0) {
         await this.pointsService.awardXp(attempt.userId, xpEarned, "speaking");

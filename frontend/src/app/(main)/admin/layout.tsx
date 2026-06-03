@@ -3,8 +3,6 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCurrentUser } from '@/features/auth/hooks/use-auth.hook';
-import { useAuthBootstrap } from '@/features/auth/hooks/use-auth-bootstrap.hook';
 import { useAuthStore } from '@/stores/auth.store';
 import { useMenuStore } from '@/stores/menu.store';
 import { AdminSidebar } from '@/components/sidebar/admin-sidebar';
@@ -23,12 +21,8 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { isLoading: authLoading } = useAuthBootstrap({
-    redirectTo: '/login',
-  });
-  const { data: currentUser } = useCurrentUser();
-  const { user, setUser } = useAuthStore();
-  const { menuItems, isLoading, hasLoaded, fetchMenuForUser } = useMenuStore();
+  const { user, authReady, isLoading: authLoading } = useAuthStore();
+  const { menuItems, isLoading: menuLoading, hasLoaded, fetchMenuForUser } = useMenuStore();
   const retriedMissingAdminChildren = useRef(false);
 
   const hasAdminRole = user?.roleCodes?.some((role) =>
@@ -38,43 +32,31 @@ export default function AdminLayout({
     (item) => item.path.startsWith('/admin') || item.code.startsWith('admin-')
   );
   const canAccessAdmin = Boolean(hasAdminRole || hasAdminMenuAccess);
-  const displayName = currentUser?.fullName || user?.fullName || 'Admin';
-  const displayEmail = currentUser?.email || user?.email || 'Quan tri';
+  const displayName = user?.fullName || 'Admin';
+  const displayEmail = user?.email || 'Quan tri';
 
   useEffect(() => {
-    if (currentUser) {
-      setUser(currentUser);
-    }
-  }, [currentUser, setUser]);
-
-  useEffect(() => {
-    if (user && !authLoading && !hasLoaded && !isLoading) {
+    if (user && !hasLoaded && !menuLoading) {
       fetchMenuForUser();
     }
-  }, [user, authLoading, hasLoaded, isLoading, fetchMenuForUser]);
+  }, [user, hasLoaded, menuLoading, fetchMenuForUser]);
 
   useEffect(() => {
     const adminRoot = menuItems.find((item) => item.code === 'admin-dashboard');
 
-    if (
-      user &&
-      hasLoaded &&
-      adminRoot &&
-      adminRoot.children.length === 0 &&
-      !retriedMissingAdminChildren.current
-    ) {
+    if (user && hasLoaded && adminRoot && adminRoot.children.length === 0 && !retriedMissingAdminChildren.current) {
       retriedMissingAdminChildren.current = true;
       fetchMenuForUser({ force: true });
     }
   }, [fetchMenuForUser, hasLoaded, menuItems, user]);
 
   useEffect(() => {
-    if (!authLoading && hasLoaded && !canAccessAdmin) {
-      router.push('/not-found');
+    if (hasLoaded && !canAccessAdmin) {
+      router.push(authReady && !user ? '/login' : '/not-found');
     }
-  }, [authLoading, canAccessAdmin, hasLoaded, router]);
+  }, [authReady, canAccessAdmin, hasLoaded, router, user]);
 
-  if (authLoading || isLoading || !hasLoaded) {
+  if (!authReady || authLoading || !user || !hasLoaded) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -87,7 +69,7 @@ export default function AdminLayout({
       {canAccessAdmin && (
         <div className="min-h-screen bg-[#f7f9fc] text-slate-900 dark:bg-background dark:text-foreground">
           <div className="flex min-h-screen">
-            <AdminSidebar adminMenuItems={menuItems} isLoading={isLoading} />
+            <AdminSidebar adminMenuItems={menuItems} isLoading={menuLoading} />
 
             <div className="flex min-w-0 flex-1 flex-col">
               <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur dark:border-border dark:bg-card/95">
@@ -96,9 +78,9 @@ export default function AdminLayout({
                     <div className="relative w-full max-w-md">
                       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                       <input
-                        aria-label="Tim kiem nhanh"
+                        aria-label="Tìm kiếm nhanh"
                         className="h-10 w-full rounded-md border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/10 dark:border-border dark:bg-background"
-                        placeholder="Tim kiem nhanh..."
+                        placeholder="Tìm kiếm nhanh..."
                         type="search"
                       />
                     </div>
@@ -133,7 +115,7 @@ export default function AdminLayout({
                       className="hidden h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 transition hover:border-blue-200 hover:text-blue-700 dark:border-border dark:bg-background dark:text-muted-foreground sm:flex"
                     >
                       <LayoutDashboard className="h-4 w-4 shrink-0" />
-                      Ve ung dung
+                      Về trang chủ
                     </Link>
                     <Link
                       href="/admin/settings"

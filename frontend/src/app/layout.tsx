@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import Script from 'next/script';
 import { Toaster } from 'sonner';
 import './globals.css';
+import { AuthProvider } from '@/app/auth-provider';
 import { Providers } from '@/app/providers';
 import { ThemeProvider } from '@/components/theme-provider';
 
@@ -45,8 +46,10 @@ export default function RootLayout({
         </Script>
         <ThemeProvider>
           <Providers>
-            {children}
-            <Toaster position="top-right" richColors />
+            <AuthProvider>
+              {children}
+              <Toaster position="top-right" richColors />
+            </AuthProvider>
           </Providers>
         </ThemeProvider>
       </body>

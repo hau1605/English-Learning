@@ -118,4 +118,13 @@ export class NotificationsService {
       },
     });
   }
+
+  async deleteForUser(userId: string, notificationId: string) {
+    return this.prisma.userNotification.deleteMany({
+      where: {
+        userId,
+        id: notificationId,
+      },
+    });
+  }
 }

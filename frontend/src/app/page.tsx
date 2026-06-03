@@ -1,6 +1,28 @@
+'use client';
+
+import { useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/stores/auth.store';
 
 export default function HomePage() {
+  const router = useRouter();
+  const { user, authReady } = useAuthStore();
+
+  useEffect(() => {
+    if (authReady && user) {
+      router.replace('/dashboard');
+    }
+  }, [authReady, router, user]);
+
+  if (authReady && user) {
+    return (
+      <main className="flex min-h-screen items-center justify-center p-24">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </main>
+    );
+  }
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24">
       <div className="text-center">

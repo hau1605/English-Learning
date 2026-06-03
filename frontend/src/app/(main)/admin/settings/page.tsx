@@ -95,7 +95,7 @@ export default function AdminSettingsPage() {
   return (
     <>
       <AdminDataTable
-        title="Quan ly settings"
+        title="Quản lý settings"
         data={filteredRows}
         isLoading={!mounted || isLoading}
         total={filteredRows.length}
@@ -126,7 +126,7 @@ export default function AdminSettingsPage() {
         toolbar={
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="relative">
-              <Input value={search} onChange={(event) => setSearch(event.target.value)} className="h-9 w-full rounded border-slate-200 bg-white pr-9 text-xs shadow-none dark:border-border dark:bg-background lg:w-[300px]" placeholder="Tim theo tu khoa..." />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} className="h-9 w-full rounded border-slate-200 bg-white pr-9 text-xs shadow-none dark:border-border dark:bg-background lg:w-[300px]" placeholder="Tìm theo từ khóa..." />
               <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             </div>
             <Button

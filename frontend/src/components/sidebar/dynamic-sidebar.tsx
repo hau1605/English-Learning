@@ -20,6 +20,8 @@ import {
   Shield,
   Users,
   Settings,
+  StickyNote,
+  FileQuestion,
   Menu,
   Loader2,
 } from 'lucide-react';
@@ -37,6 +39,8 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Shield,
   Users,
   Settings,
+  StickyNote,
+  FileQuestion,
   Menu,
 };
 

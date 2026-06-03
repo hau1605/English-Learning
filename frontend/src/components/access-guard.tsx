@@ -8,11 +8,16 @@ import { useAuthStore } from '@/stores/auth.store';
 export function useHasAccess(path?: string): boolean {
   const pathname = path || usePathname();
   const { menuItems, fetchMenuForUser } = useMenuStore();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, isLoading, authReady } = useAuthStore();
   const [hasAccess, setHasAccess] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
 
   const checkAccess = useCallback(async () => {
+    if (!authReady || isLoading) {
+      setIsChecking(true);
+      return;
+    }
+
     if (!isAuthenticated) {
       setHasAccess(false);
       setIsChecking(false);
@@ -45,7 +50,7 @@ export function useHasAccess(path?: string): boolean {
 
     setHasAccess(checkPath(menuItems));
     setIsChecking(false);
-  }, [pathname, isAuthenticated, menuItems.length, fetchMenuForUser]);
+  }, [pathname, authReady, isLoading, isAuthenticated, menuItems.length, fetchMenuForUser]);
 
   useEffect(() => {
     checkAccess();
@@ -62,15 +67,20 @@ interface AccessGuardProps {
 export function AccessGuard({ children, fallbackPath = '/not-found' }: AccessGuardProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { authReady, isLoading } = useAuthStore();
   const hasAccess = useHasAccess();
 
   useEffect(() => {
+    if (!authReady || isLoading) {
+      return;
+    }
+
     if (!hasAccess && pathname !== '/not-found') {
       router.push(fallbackPath);
     }
-  }, [hasAccess, pathname, router, fallbackPath]);
+  }, [authReady, hasAccess, isLoading, pathname, router, fallbackPath]);
 
-  if (!hasAccess) {
+  if (!authReady || isLoading || !hasAccess) {
     return null;
   }
 

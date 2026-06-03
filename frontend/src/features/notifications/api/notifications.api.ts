@@ -42,7 +42,7 @@ export const notificationsApi = {
   },
 
   markAsRead: async (notificationId: string): Promise<ApiResponse<void>> => {
-    const response = await api.post<ApiResponse<void>>(`/notifications/${notificationId}/read`);
+    const response = await api.patch<ApiResponse<void>>(`/notifications/${notificationId}/read`);
     return response.data;
   },
 

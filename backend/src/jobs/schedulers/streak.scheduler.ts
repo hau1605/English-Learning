@@ -141,7 +141,7 @@ export class StreakScheduler {
       await this.prisma.userFlashcardReview.findFirst({
         where: {
           userId,
-          createdAt: {
+          lastReviewedAt: {
             gte: date,
             lt: nextDay,
           },
@@ -188,7 +188,7 @@ export class StreakScheduler {
     // Get users who reviewed flashcards today
     const flashcardUsers = await this.prisma.userFlashcardReview.findMany({
       where: {
-        createdAt: {
+        lastReviewedAt: {
           gte: today,
           lt: nextDay,
         },

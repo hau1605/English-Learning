@@ -4,6 +4,7 @@ import { UsersService } from '@/modules/users/services/users.service';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { UpdateUserDto } from '@/modules/users/dto/update-user.dto';
 import { PaginationParams } from '@/common/interfaces';
+import { ReadApiThrottle } from '@/common/decorators/rate-limit.decorator';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -13,6 +14,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get('me')
+  @ReadApiThrottle()
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'Profile retrieved' })
   async getMe(@Req() req: Request & { user: { id: string } }) {

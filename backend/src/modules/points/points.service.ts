@@ -75,6 +75,21 @@ export class PointsService {
   ): Promise<void> {
     if (!xp || xp <= 0) return;
 
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { xp: true, level: true },
+    });
+
+    if (user) {
+      const nextLevel = this.calculateLevel(user.xp);
+      if (nextLevel > user.level) {
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { level: nextLevel },
+        });
+      }
+    }
+
     try {
       await this.leaderboardRepo.updateUserXp(userId, xp);
     } catch (err) {

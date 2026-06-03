@@ -218,7 +218,7 @@ export class VocabularyController {
   @UseGuards(JwtAuthGuard, PermissionGuard)
   @Permissions('vocabulary.view')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Export vocabularies to CSV/XLSX/JSON' })
+  @ApiOperation({ summary: 'Export vocabularies to CSV/JSON' })
   @ApiResponse({ status: 200, description: 'File download' })
   async exportVocabulary(@Res() res: Response, @Query() query: ExportVocabularyQueryDto) {
     const { data, filename, mimeType } = await this.vocabularyService.exportVocabulary({
@@ -238,7 +238,7 @@ export class VocabularyController {
   @ApiBearerAuth()
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Import vocabularies from CSV/XLSX/JSON file' })
+  @ApiOperation({ summary: 'Import vocabularies from CSV/JSON file' })
   @ApiResponse({ status: 201, description: 'Import result' })
   @ApiBody({
     schema: {
@@ -247,7 +247,7 @@ export class VocabularyController {
         file: {
           type: 'string',
           format: 'binary',
-          description: 'Vocabulary file (CSV, XLSX, or JSON)',
+          description: 'Vocabulary file (CSV or JSON)',
         },
         topicId: {
           type: 'string',

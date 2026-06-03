@@ -169,7 +169,6 @@ export class VocabularyQueryDto {
 
 export enum ExportFormat {
   CSV = 'csv',
-  XLSX = 'xlsx',
   JSON = 'json',
 }
 
@@ -179,7 +178,7 @@ export class ExportVocabularyQueryDto {
   @IsString()
   topicId?: string;
 
-  @ApiPropertyOptional({ description: 'Export format: csv, xlsx, json', enum: ExportFormat, default: ExportFormat.CSV })
+  @ApiPropertyOptional({ description: 'Export format: csv or json', enum: ExportFormat, default: ExportFormat.CSV })
   @IsOptional()
   @IsString()
   format?: ExportFormat;

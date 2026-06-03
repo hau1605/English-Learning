@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
+import { APP_GUARD } from "@nestjs/core";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { BullModule } from "@nestjs/bullmq";
 import * as path from "path";
@@ -29,7 +30,10 @@ import { EventsModule } from "@/events/events.module";
 import { JobsModule } from "@/jobs/jobs.module";
 import { MenuModule } from "@/modules/menu/menu.module";
 import { CrawlerModule } from "@/modules/crawler/crawler.module";
+import { NotesModule } from "@/modules/notes/notes.module";
+import { ExamPracticeModule } from "@/modules/exam-practice/exam-practice.module";
 import { validate } from "@/config/env.validation";
+import { RateLimitGuard } from "@/common/guards/rate-limit.guard";
 import { existsSync } from "fs";
 
 // Step 1: Load base .env to get NODE_ENV
@@ -59,12 +63,15 @@ const envFilePath = isProduction
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => [
-        {
-          ttl: config.get<number>("THROTTLE_TTL") || 60000,
-          limit: config.get<number>("THROTTLE_LIMIT") || 100,
-        },
-      ],
+      useFactory: (config: ConfigService) => ({
+        throttlers: [
+          {
+            ttl: config.get<number>("THROTTLE_TTL") || 60000,
+            limit: config.get<number>("THROTTLE_LIMIT") || 100,
+          },
+        ],
+        errorMessage: "Too many requests. Please try again later.",
+      }),
     }),
 
     BullModule.forRootAsync({
@@ -105,8 +112,15 @@ const envFilePath = isProduction
     EventsModule,
     JobsModule,
     MenuModule,
+    NotesModule,
+    ExamPracticeModule,
     // CrawlerModule,
   ],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: RateLimitGuard,
+    },
+  ],
 })
 export class AppModule {}

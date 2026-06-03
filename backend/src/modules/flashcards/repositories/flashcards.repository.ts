@@ -73,8 +73,6 @@ export class FlashcardsRepository {
       ],
       take: limit,
     });
-    console.log('Reviewed due cards:', reviewedDueCards);
-
     const remainingLimit = Math.max(0, limit - reviewedDueCards.length);
     if (remainingLimit === 0) {
       return reviewedDueCards.map((review) => this.toUserFlashcardPayload(review));

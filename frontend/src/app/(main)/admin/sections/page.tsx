@@ -137,7 +137,7 @@ export default function AdminSectionsPage() {
 
   return (
     <AdminDataTable
-      title="Quan ly sections"
+      title="Quản lý sections"
       data={sections?.data || []}
       isLoading={isLoading}
       total={sections?.meta?.total || 0}

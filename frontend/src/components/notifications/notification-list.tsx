@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/utils';
+import { useAuthStore } from '@/stores/auth.store';
+import { tokenStorage } from '@/stores/token-storage';
 
 const NOTIFICATION_ICONS: Record<string, any> = {
   ACHIEVEMENT: Trophy,
@@ -110,6 +112,8 @@ export default function NotificationsPage() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const authReady = useAuthStore((state) => state.authReady);
+  const hasToken = tokenStorage.hasAccessToken();
 
   const { data: notifications, isLoading } = useQuery({
     queryKey: ['notifications', { page, filter }],
@@ -118,11 +122,13 @@ export default function NotificationsPage() {
       limit: 20,
       unreadOnly: filter === 'unread',
     }),
+    enabled: authReady && hasToken,
   });
 
   const { data: unreadData } = useQuery({
     queryKey: ['notifications', 'unread-count'],
     queryFn: notificationsApi.getUnreadCount,
+    enabled: authReady && hasToken,
   });
 
   const markAsReadMutation = useMutation({

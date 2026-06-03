@@ -4,7 +4,8 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { VocabularyRepository } from "@/modules/vocabulary/repositories/vocabulary.repository";
-import * as XLSX from "xlsx";
+
+type VocabularyFileRow = Record<string, unknown>;
 
 @Injectable()
 export class VocabularyService {
@@ -176,14 +177,9 @@ export class VocabularyService {
 
     switch (format) {
       case "xlsx":
-        const worksheet = XLSX.utils.json_to_sheet(exportData);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Vocabulary");
-        data = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
-        filename = `vocabulary-export-${timestamp}.xlsx`;
-        mimeType =
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-        break;
+        throw new BadRequestException(
+          "XLSX export is disabled until a patched spreadsheet parser is configured. Use CSV or JSON instead.",
+        );
 
       case "json":
         data = JSON.stringify(exportData, null, 2);
@@ -258,7 +254,7 @@ export class VocabularyService {
       throw new NotFoundException("Topic not found");
     }
 
-    const parseResult = this.parseFile(fileBuffer);
+    const parseResult = await this.parseFile(fileBuffer);
     const vocabularies = parseResult.data;
     const parseErrors = parseResult.errors;
 
@@ -286,7 +282,7 @@ export class VocabularyService {
       if (!item.word || !item.meaning) {
         importErrors.push({
           row: rowNum,
-          word: item.word || "",
+          word: String(item.word || ""),
           error: "Missing required fields (word, meaning)",
         });
         return;
@@ -339,14 +335,13 @@ export class VocabularyService {
     };
   }
 
-  private parseFile(buffer: Buffer): { data: any[]; errors: string[] } {
+  private async parseFile(
+    buffer: Buffer,
+  ): Promise<{ data: VocabularyFileRow[]; errors: string[] }> {
     const errors: string[] = [];
 
     try {
-      const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+      const jsonData = await this.readRowsFromBuffer(buffer);
 
       if (jsonData.length === 0) {
         return { data: [], errors: ["File is empty or has no data"] };
@@ -434,10 +429,92 @@ export class VocabularyService {
 
       return { data: normalizedData, errors };
     } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
       const message = error instanceof Error ? error.message : String(error);
       errors.push(`Failed to parse file: ${message}`);
       return { data: [], errors };
     }
+  }
+
+  private async readRowsFromBuffer(buffer: Buffer): Promise<VocabularyFileRow[]> {
+    const text = buffer.toString("utf-8").trim();
+
+    if (text.startsWith("{") || text.startsWith("[")) {
+      const parsed = JSON.parse(text);
+      return Array.isArray(parsed) ? parsed : [parsed];
+    }
+
+    if (buffer.subarray(0, 2).toString("utf-8") === "PK") {
+      throw new BadRequestException(
+        "XLSX import is disabled until a patched spreadsheet parser is configured. Use CSV or JSON instead.",
+      );
+    }
+
+    return this.readCsvRows(buffer.toString("utf-8"));
+  }
+
+  private readCsvRows(content: string): VocabularyFileRow[] {
+    const rows = this.parseCsv(content);
+    const [headers = [], ...dataRows] = rows;
+
+    return dataRows
+      .filter((row) => row.some((value) => value.trim() !== ""))
+      .map((row) =>
+        headers.reduce<VocabularyFileRow>((acc, header, index) => {
+          acc[header] = row[index] ?? "";
+          return acc;
+        }, {}),
+      );
+  }
+
+  private parseCsv(content: string): string[][] {
+    const rows: string[][] = [];
+    let row: string[] = [];
+    let value = "";
+    let inQuotes = false;
+
+    for (let index = 0; index < content.length; index += 1) {
+      const char = content[index];
+      const nextChar = content[index + 1];
+
+      if (char === '"' && inQuotes && nextChar === '"') {
+        value += '"';
+        index += 1;
+        continue;
+      }
+
+      if (char === '"') {
+        inQuotes = !inQuotes;
+        continue;
+      }
+
+      if (char === "," && !inQuotes) {
+        row.push(value);
+        value = "";
+        continue;
+      }
+
+      if ((char === "\n" || char === "\r") && !inQuotes) {
+        if (char === "\r" && nextChar === "\n") {
+          index += 1;
+        }
+        row.push(value);
+        rows.push(row);
+        row = [];
+        value = "";
+        continue;
+      }
+
+      value += char;
+    }
+
+    row.push(value);
+    rows.push(row);
+
+    return rows;
   }
 
   private slugify(text: string): string {

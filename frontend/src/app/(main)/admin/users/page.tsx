@@ -246,7 +246,7 @@ export default function AdminUsersPage() {
         </div>
 
         <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-end">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:w-[500px]">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:w-[500px]">
             {/* <Select value="all">
               <SelectTrigger className="h-9 rounded border-slate-200 bg-white text-xs text-slate-500 shadow-none dark:border-border dark:bg-background">
                 <SelectValue placeholder="Phòng ban" />
@@ -491,14 +491,14 @@ export default function AdminUsersPage() {
                           : activateUser.mutate(user.id)
                       }
                       className={cn(
-                        "inline-flex h-6 items-center gap-1 rounded-full px-2 text-[11px] font-semibold text-white",
+                        "inline-flex h-5 items-center gap-1 rounded-full px-2 text-[11px] font-semibold text-white",
                         user.status === "ACTIVE"
                           ? "bg-blue-600"
                           : "bg-slate-500",
                       )}
                     >
                       {statusLabels[user.status] || user.status}
-                      <span className="h-3.5 w-3.5 rounded-full bg-white/90" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-white/90" />
                     </button>
                   </td>
                   {/* <td className="whitespace-nowrap border-r border-slate-100 px-3 dark:border-border">
@@ -554,7 +554,7 @@ export default function AdminUsersPage() {
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
-                        className="h-7 w-7 rounded border-slate-200 bg-slate-50 p-0 dark:border-border dark:bg-background"
+                        className="h-5 w-7 rounded border-slate-200 bg-slate-50 p-0 dark:border-border dark:bg-background"
                         aria-label="Sửa"
                       >
                         <Edit3
@@ -565,7 +565,7 @@ export default function AdminUsersPage() {
                       </Button>
                       <Button
                         variant="outline"
-                        className="h-7 w-7 rounded border-slate-200 bg-slate-50 p-0 text-red-600 dark:border-border dark:bg-background"
+                        className="h-5 w-7 rounded border-slate-200 bg-slate-50 p-0 text-red-600 dark:border-border dark:bg-background"
                         onClick={() => {
                           if (confirm(`Xóa người dùng "${user.fullName}"?`)) {
                             deleteUser.mutate(user.id);

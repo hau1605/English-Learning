@@ -310,7 +310,7 @@ export function AdminDataTable<T extends { id: string }>({
                               key={idx}
                               variant={action.variant === "destructive" ? "outline" : "ghost"}
                               className={cn(
-                                "h-7 w-7 rounded border-slate-200 bg-slate-50 p-0 dark:border-border dark:bg-background",
+                                "h-5 w-7 rounded border-slate-200 bg-slate-50 p-0 dark:border-border dark:bg-background",
                                 action.variant === "destructive" && "text-red-600 dark:text-red-400"
                               )}
                               onClick={() => action.onClick(item)}

@@ -200,6 +200,8 @@ export class QuizService {
     const score = Math.round((totalCorrect / totalQuestions) * 100);
     const passed = score >= quiz.passingScore;
 
+    const xpEarned = passed ? Math.round(20 + score * 0.5) : 0;
+
     const attempt = await this.prisma.userQuizAttempt.create({
       data: {
         userId,
@@ -212,24 +214,42 @@ export class QuizService {
       },
     });
 
-    if (passed) {
-      const xpEarned = Math.round(20 + score * 0.5);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-      // Record quiz analytics and award XP via PointsService
-      await this.prisma.analyticsEvent.create({
-        data: {
+    await this.prisma.userDailyStat.upsert({
+      where: {
+        userId_date: {
           userId,
-          eventName: EventName.QUIZ_COMPLETED,
-          metadata: {
-            quizId,
-            score,
-            passed,
-            xpEarned,
-          },
+          date: today,
         },
-      });
+      },
+      create: {
+        userId,
+        date: today,
+        quizzesCompleted: 1,
+        xpEarned,
+      },
+      update: {
+        quizzesCompleted: { increment: 1 },
+        xpEarned: { increment: xpEarned },
+      },
+    });
 
-      // award xp (updates leaderboard and emits xp event)
+    await this.prisma.analyticsEvent.create({
+      data: {
+        userId,
+        eventName: EventName.QUIZ_COMPLETED,
+        metadata: {
+          quizId,
+          score,
+          passed,
+          xpEarned,
+        },
+      },
+    });
+
+    if (xpEarned > 0) {
       await this.pointsService.awardXp(userId, xpEarned, "quiz");
     }
 

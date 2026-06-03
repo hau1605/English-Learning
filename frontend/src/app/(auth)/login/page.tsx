@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,7 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2, AlertCircle, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { useLogin } from '@/features/auth/hooks/use-auth.hook';
-import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/stores/auth.store';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email'),
@@ -20,6 +22,8 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { user, authReady } = useAuthStore();
   const {
     register,
     handleSubmit,
@@ -30,6 +34,20 @@ export default function LoginPage() {
 
   const loginMutation = useLogin();
   const isLoading = loginMutation.isPending;
+
+  useEffect(() => {
+    if (authReady && user) {
+      router.replace('/dashboard');
+    }
+  }, [authReady, router, user]);
+
+  if (authReady && user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-4 py-12">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   const onSubmit = (data: LoginFormData) => {
     loginMutation.mutate(data);

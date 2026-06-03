@@ -83,7 +83,7 @@ export interface VocabularyQueryDto {
   difficulty?: number;
 }
 
-export type ExportFormat = 'csv' | 'xlsx' | 'json';
+export type ExportFormat = 'csv' | 'json';
 
 export interface ExportQueryDto {
   topicId?: string;

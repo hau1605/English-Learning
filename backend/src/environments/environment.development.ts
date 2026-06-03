@@ -35,6 +35,7 @@ export const environment = {
 
   // Rate Limiting - More lenient in development
   throttle: {
+    enabled: process.env.RATE_LIMIT_ENABLED === 'true',
     ttl: parseInt(process.env.THROTTLE_TTL || '60000', 10),
     limit: parseInt(process.env.THROTTLE_LIMIT || '100', 10),
   },

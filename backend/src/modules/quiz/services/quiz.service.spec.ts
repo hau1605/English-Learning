@@ -107,6 +107,9 @@ describe("QuizService", () => {
       analyticsEvent: {
         create: jest.fn(),
       },
+      userDailyStat: {
+        upsert: jest.fn(),
+      },
       $transaction: jest.fn(),
     };
 

@@ -1,6 +1,6 @@
 import { plainToClass } from 'class-transformer';
 import { validateSync } from 'class-validator';
-import { IsString, IsNumber, IsBoolean, IsOptional, MinLength } from 'class-validator';
+import { IsString, IsNumber, IsBoolean, IsOptional, MinLength, Matches } from 'class-validator';
 
 class EnvironmentVariables {
   // Application
@@ -77,6 +77,11 @@ class EnvironmentVariables {
   S3_PUBLIC_URL?: string;
 
   // Rate Limiting
+  @IsString()
+  @IsOptional()
+  @Matches(/^(true|false|1|0|yes|no|on|off)$/i)
+  RATE_LIMIT_ENABLED?: string;
+
   @IsNumber()
   @IsOptional()
   THROTTLE_TTL?: number;
@@ -84,6 +89,30 @@ class EnvironmentVariables {
   @IsNumber()
   @IsOptional()
   THROTTLE_LIMIT?: number;
+
+  @IsNumber()
+  @IsOptional()
+  AUTH_THROTTLE_TTL?: number;
+
+  @IsNumber()
+  @IsOptional()
+  AUTH_THROTTLE_LIMIT?: number;
+
+  @IsNumber()
+  @IsOptional()
+  AUTH_REFRESH_THROTTLE_TTL?: number;
+
+  @IsNumber()
+  @IsOptional()
+  AUTH_REFRESH_THROTTLE_LIMIT?: number;
+
+  @IsNumber()
+  @IsOptional()
+  READ_API_THROTTLE_TTL?: number;
+
+  @IsNumber()
+  @IsOptional()
+  READ_API_THROTTLE_LIMIT?: number;
 
   // Logging
   @IsString()

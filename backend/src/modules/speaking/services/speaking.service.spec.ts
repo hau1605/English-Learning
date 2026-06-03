@@ -65,6 +65,9 @@ describe("SpeakingService", () => {
       user: {
         update: jest.fn(),
       },
+      userDailyStat: {
+        upsert: jest.fn(),
+      },
     };
 
     const mockQueueService = {

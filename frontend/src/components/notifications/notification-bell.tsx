@@ -7,21 +7,26 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationsApi } from '@/features/notifications/api/notifications.api';
 import { Bell, CheckCheck } from 'lucide-react';
 import { cn } from '@/utils';
+import { useAuthStore } from '@/stores/auth.store';
+import { tokenStorage } from '@/stores/token-storage';
 
 export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
+  const authReady = useAuthStore((state) => state.authReady);
+  const hasToken = tokenStorage.hasAccessToken();
 
   const { data: unreadData } = useQuery({
     queryKey: ['notifications', 'unread-count'],
     queryFn: notificationsApi.getUnreadCount,
-    refetchInterval: 30000,
+    enabled: authReady && hasToken,
+    refetchInterval: authReady && hasToken ? 30000 : false,
   });
 
   const { data: notifications } = useQuery({
     queryKey: ['notifications', 'dropdown'],
     queryFn: () => notificationsApi.getNotifications({ limit: 5 }),
-    enabled: isOpen,
+    enabled: authReady && hasToken && isOpen,
   });
 
   const markAsReadMutation = useMutation({

@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 export function useLogin() {
   const router = useRouter();
   const setUser = useAuthStore((state) => state.setUser);
+  const setAuthReady = useAuthStore((state) => state.setAuthReady);
   const setIsLoading = useAuthStore((state) => state.setIsLoading);
 
   return useMutation({
@@ -19,6 +20,7 @@ export function useLogin() {
       const { accessToken } = response.data;
 
       tokenStorage.setAccessToken(accessToken);
+      setAuthReady(true);
       setIsLoading(false);
 
       try {
@@ -41,6 +43,7 @@ export function useLogin() {
 export function useRegister() {
   const router = useRouter();
   const setUser = useAuthStore((state) => state.setUser);
+  const setAuthReady = useAuthStore((state) => state.setAuthReady);
   const setIsLoading = useAuthStore((state) => state.setIsLoading);
 
   return useMutation({
@@ -49,6 +52,7 @@ export function useRegister() {
       const { accessToken } = response.data;
 
       tokenStorage.setAccessToken(accessToken);
+      setAuthReady(true);
       setIsLoading(false);
 
       try {
@@ -71,12 +75,14 @@ export function useLogout() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const logout = useAuthStore((state) => state.logout);
+  const setAuthReady = useAuthStore((state) => state.setAuthReady);
   const clearMenu = useMenuStore((state) => state.clearMenu);
 
   return useMutation({
     mutationFn: () => authApi.logout(),
     onSuccess: () => {
       tokenStorage.clearAccessToken();
+      setAuthReady(true);
       logout();
       clearMenu();
       queryClient.clear();
@@ -85,6 +91,7 @@ export function useLogout() {
     },
     onError: () => {
       tokenStorage.clearAccessToken();
+      setAuthReady(true);
       logout();
       clearMenu();
       router.push('/login');
@@ -94,6 +101,7 @@ export function useLogout() {
 
 export function useCurrentUser() {
   const setUser = useAuthStore((state) => state.setUser);
+  const authReady = useAuthStore((state) => state.authReady);
   const hasToken = tokenStorage.hasAccessToken();
 
   return useQuery({
@@ -104,7 +112,7 @@ export function useCurrentUser() {
       setUser(userData);
       return userData;
     },
-    enabled: hasToken,
+    enabled: authReady && hasToken,
     retry: false,
     staleTime: 5 * 60 * 1000,
   });

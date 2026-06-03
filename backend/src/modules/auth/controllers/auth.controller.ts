@@ -11,6 +11,10 @@ import { LoginDto } from '@/modules/auth/dto/login.dto';
 import { RegisterDto } from '@/modules/auth/dto/register.dto';
 import { RESPONSE_MESSAGES } from '@/common/constants/response-messages';
 import { AuditService } from '@/modules/audit/audit.service';
+import {
+  RefreshTokenThrottle,
+  StrictAuthThrottle,
+} from '@/common/decorators/rate-limit.decorator';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -23,6 +27,7 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  @StrictAuthThrottle()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register new user' })
   @ApiResponse({ status: 201, description: 'User registered successfully' })
@@ -54,6 +59,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @StrictAuthThrottle()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login user' })
   @ApiResponse({ status: 200, description: 'Login successful' })
@@ -152,6 +158,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @RefreshTokenThrottle()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token' })
   @ApiResponse({ status: 200, description: 'Token refreshed' })
@@ -222,6 +229,7 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @StrictAuthThrottle()
   @HttpCode(HttpStatus.OK)
   @Public()
   @ApiOperation({ summary: 'Request password reset' })
@@ -279,11 +287,14 @@ export class AuthController {
   }
 
   private setRefreshTokenCookie(res: Response, token: string): void {
-    res.cookie('refreshToken', token, {
+    const isProduction = process.env.NODE_ENV === "production";
+
+    res.cookie("refreshToken", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: "/",
     });
   }
 }

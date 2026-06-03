@@ -46,6 +46,8 @@ async function main() {
     { code: 'settings.view', resource: 'settings', action: 'view', description: 'View settings' },
     { code: 'settings.update', resource: 'settings', action: 'update', description: 'Update settings' },
     { code: 'admin.view', resource: 'admin', action: 'view', description: 'View admin dashboard' },
+    { code: 'exam.view', resource: 'exam', action: 'view', description: 'View exam practice content' },
+    { code: 'exam.manage', resource: 'exam', action: 'manage', description: 'Manage exam practice content' },
     // Menu permissions
     { code: 'menu.view', resource: 'menu', action: 'view', description: 'View menu management' },
     { code: 'menu.create', resource: 'menu', action: 'create', description: 'Create menu items' },
@@ -175,6 +177,7 @@ async function main() {
           'section.update',
           'section.delete',
           'media.upload',
+          'exam.view',
         ],
       },
     },
@@ -205,6 +208,8 @@ async function main() {
           'quiz.view',
           'lesson.view',
           'media.upload',
+          'exam.view',
+          'exam.manage',
         ],
       },
     },
@@ -298,8 +303,10 @@ async function main() {
     { code: 'quizzes', label: 'Quizzes', icon: 'ScrollText', path: '/quizzes', orderIndex: 3, roles: ['super_admin', 'admin', 'teacher', 'student'] },
     { code: 'grammar', label: 'Grammar', icon: 'BookOpen', path: '/grammar', orderIndex: 4, roles: ['super_admin', 'admin', 'teacher', 'student'] },
     { code: 'speaking', label: 'Speaking', icon: 'Mic', path: '/speaking', orderIndex: 5, roles: ['super_admin', 'admin', 'teacher', 'student'] },
-    { code: 'leaderboard', label: 'Leaderboard', icon: 'Trophy', path: '/leaderboard', orderIndex: 6, roles: ['super_admin', 'admin', 'teacher', 'student'] },
-    { code: 'analytics', label: 'Analytics', icon: 'BarChart3', path: '/analytics', orderIndex: 7, roles: ['super_admin', 'admin', 'teacher', 'student'] },
+    { code: 'notes', label: 'Notes', icon: 'StickyNote', path: '/notes', orderIndex: 6, roles: ['super_admin', 'admin', 'teacher', 'student'] },
+    { code: 'exam-practice', label: 'Exam Practice', icon: 'FileQuestion', path: '/exam-practice', orderIndex: 7, roles: ['super_admin', 'admin', 'teacher', 'student'] },
+    { code: 'leaderboard', label: 'Leaderboard', icon: 'Trophy', path: '/leaderboard', orderIndex: 8, roles: ['super_admin', 'admin', 'teacher', 'student'] },
+    { code: 'analytics', label: 'Analytics', icon: 'BarChart3', path: '/analytics', orderIndex: 9, roles: ['super_admin', 'admin', 'teacher', 'student'] },
     // Admin menu items
     { code: 'admin-dashboard', label: 'Admin Dashboard', icon: 'Shield', path: '/admin', orderIndex: 100, roles: ['super_admin', 'admin'] },
     { code: 'admin-users', label: 'User Management', icon: 'Users', path: '/admin/users', orderIndex: 101, parentCode: 'admin-dashboard', roles: ['super_admin', 'admin'] },
@@ -353,7 +360,90 @@ async function main() {
 
   console.log('Menu items seeded');
 
+  await seedExamPracticeMetadata();
+
   console.log('Database seeding completed!');
+}
+
+async function seedExamPracticeMetadata() {
+  const toeic = await prisma.exam.upsert({
+    where: { code: 'TOEIC_LR' },
+    update: {
+      name: 'TOEIC Listening & Reading',
+      description: 'TOEIC Listening and Reading practice foundation. MVP starts with Reading Part 5, Part 6, and Part 7.',
+      totalDurationMinutes: 120,
+      isActive: true,
+      orderIndex: 1,
+    },
+    create: {
+      code: 'TOEIC_LR',
+      name: 'TOEIC Listening & Reading',
+      description: 'TOEIC Listening and Reading practice foundation. MVP starts with Reading Part 5, Part 6, and Part 7.',
+      totalDurationMinutes: 120,
+      scoringConfig: {
+        note: 'Raw-to-scaled TOEIC score conversion must be configured with licensed/approved score tables before full-test scoring.',
+      },
+      isActive: true,
+      orderIndex: 1,
+    },
+  });
+
+  const sections = [
+    {
+      code: 'TOEIC_P5',
+      name: 'TOEIC Part 5 - Incomplete Sentences',
+      partNumber: 5,
+      durationMinutes: 15,
+      questionCount: 30,
+      questionTypes: ['SINGLE_CHOICE'],
+      orderIndex: 5,
+      description: 'Grammar and vocabulary multiple-choice sentence completion.',
+    },
+    {
+      code: 'TOEIC_P6',
+      name: 'TOEIC Part 6 - Text Completion',
+      partNumber: 6,
+      durationMinutes: 12,
+      questionCount: 16,
+      questionTypes: ['SINGLE_CHOICE'],
+      orderIndex: 6,
+      description: 'Text completion questions grouped by short passages.',
+    },
+    {
+      code: 'TOEIC_P7',
+      name: 'TOEIC Part 7 - Reading Comprehension',
+      partNumber: 7,
+      durationMinutes: 53,
+      questionCount: 54,
+      questionTypes: ['SINGLE_CHOICE'],
+      orderIndex: 7,
+      description: 'Reading comprehension questions based on one or more passages.',
+    },
+  ];
+
+  for (const section of sections) {
+    await prisma.examSection.upsert({
+      where: {
+        examId_code: {
+          examId: toeic.id,
+          code: section.code,
+        },
+      },
+      update: {
+        ...section,
+        skill: 'READING',
+        isRequired: true,
+      },
+      create: {
+        ...section,
+        examId: toeic.id,
+        skill: 'READING',
+        isRequired: true,
+      },
+    });
+  }
+
+  console.log('Exam practice metadata seeded');
 }
 
 function getVocabSamplesForTopic(slug: string) {

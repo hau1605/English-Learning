@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { RedisService } from '@/common/redis/redis.service';
 import { CACHE_KEYS, CACHE_TTL } from '@/common/constants/cache-keys';
-import { LeaderboardPeriod } from '../dto/leaderboard.dto';
 
 export interface LeaderboardUser {
   userId: string;
@@ -233,16 +232,10 @@ export class LeaderboardRepository {
     return result;
   }
 
-  async updateUserXp(userId: string, xpToAdd: number): Promise<void> {
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        xp: { increment: xpToAdd },
-      },
-    });
-
+  async updateUserXp(userId: string, _xpToAdd: number): Promise<void> {
     await this.redis.del(CACHE_KEYS.LEADERBOARD.USER(userId));
     await this.redis.del(CACHE_KEYS.LEADERBOARD.GLOBAL_LIMIT(100));
     await this.redis.del(CACHE_KEYS.LEADERBOARD.WEEKLY_LIMIT(100));
+    await this.redis.del(CACHE_KEYS.LEADERBOARD.MONTHLY_LIMIT(100));
   }
 }

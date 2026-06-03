@@ -169,7 +169,7 @@ export default function AdminMenusPage() {
 
   return (
     <AdminDataTable
-      title="Quan ly menu"
+      title="Quản lý menu"
       data={filteredItems}
       isLoading={isLoading}
       total={filteredItems.length}
@@ -204,7 +204,7 @@ export default function AdminMenusPage() {
       toolbar={
         <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
           <div className="relative">
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} className="h-9 w-full rounded border-slate-200 bg-white pr-9 text-xs shadow-none dark:border-border dark:bg-background lg:w-[280px]" placeholder="Tim theo tu khoa..." />
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} className="h-9 w-full rounded border-slate-200 bg-white pr-9 text-xs shadow-none dark:border-border dark:bg-background lg:w-[280px]" placeholder="Tìm theo từ khóa..." />
             <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

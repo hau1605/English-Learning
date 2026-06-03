@@ -13,6 +13,7 @@ export const api = axios.create({
 });
 
 let isRefreshing = false;
+let refreshTokenRequest: Promise<ApiResponse<{ accessToken: string; expiresIn: number }>> | null = null;
 let failedQueue: Array<{
   resolve: (value: unknown) => void;
   reject: (reason?: unknown) => void;
@@ -28,6 +29,23 @@ const processQueue = (error: Error | null, token: string | null = null) => {
   });
   failedQueue = [];
 };
+
+export async function refreshAccessTokenOnce(): Promise<ApiResponse<{ accessToken: string; expiresIn: number }>> {
+  if (!refreshTokenRequest) {
+    refreshTokenRequest = api
+      .post<ApiResponse<{ accessToken: string; expiresIn: number }>>('/auth/refresh')
+      .then((response) => {
+        const refreshResponse = response.data;
+        tokenStorage.setAccessToken(refreshResponse.data.accessToken);
+        return refreshResponse;
+      })
+      .finally(() => {
+        refreshTokenRequest = null;
+      });
+  }
+
+  return refreshTokenRequest;
+}
 
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -45,8 +63,14 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
     const isAuthEndpoint = originalRequest.url?.includes('/auth/');
+    const requestTag = `${originalRequest.method?.toUpperCase() || 'GET'} ${originalRequest.url || 'unknown-url'}`;
 
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
+      console.log('[api][401][before-refresh]', requestTag, {
+        retry: false,
+        isRefreshing,
+      });
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -55,6 +79,7 @@ api.interceptors.response.use(
             if (originalRequest.headers && token) {
               originalRequest.headers.Authorization = `Bearer ${token}`;
             }
+            console.log('[api][401][retry-after-refresh-queue]', requestTag);
             return api(originalRequest);
           })
           .catch((err) => Promise.reject(err));
@@ -64,18 +89,24 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const response = await api.post('/auth/refresh');
-        const { accessToken } = response.data.data;
+        console.log('[api][401][refresh-start]', requestTag);
+        const response = await refreshAccessTokenOnce();
+        const { accessToken } = response.data;
 
-        tokenStorage.setAccessToken(accessToken);
+        console.log('[api][401][refresh-success]', requestTag, {
+          newAccessTokenPresent: Boolean(accessToken),
+        });
+
         processQueue(null, accessToken);
 
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         }
 
+        console.log('[api][401][retry-original-after-refresh]', requestTag);
         return api(originalRequest);
       } catch (refreshError) {
+        console.log('[api][401][after-refresh-failed]', requestTag, refreshError);
         processQueue(refreshError as Error, null);
         tokenStorage.clearAccessToken();
         window.location.href = '/login';
