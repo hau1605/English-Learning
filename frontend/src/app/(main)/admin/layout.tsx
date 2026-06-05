@@ -73,7 +73,7 @@ export default function AdminLayout({
 
             <div className="flex min-w-0 flex-1 flex-col">
               <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur dark:border-border dark:bg-card/95">
-                <div className="flex h-[70px] items-center justify-between gap-4 px-4 sm:px-6">
+                <div className="flex h-[50px] items-center justify-between gap-4 px-4 sm:px-6">
                   <div className="hidden min-w-0 flex-1 items-center md:flex">
                     <div className="relative w-full max-w-md">
                       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />

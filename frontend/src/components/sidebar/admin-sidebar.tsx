@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/utils";
@@ -197,9 +197,10 @@ const fallbackItems: MenuItem[] = [
 interface MenuItemComponentProps {
   item: MenuItem;
   level?: number;
+  collapsed?: boolean;
 }
 
-function AdminMenuItem({ item, level = 0 }: MenuItemComponentProps) {
+function AdminMenuItem({ item, level = 0, collapsed = false }: MenuItemComponentProps) {
   const pathname = usePathname();
   const hasChildren = item.children && item.children.length > 0;
   const isActive =
@@ -215,6 +216,31 @@ function AdminMenuItem({ item, level = 0 }: MenuItemComponentProps) {
   const [isOpen, setIsOpen] = useState(isActive || hasActiveChild);
   const IconComponent = item.icon ? iconMap[item.icon] || LayoutDashboard : LayoutDashboard;
 
+  const iconClassName = cn(
+    "h-4 w-4 shrink-0",
+    isActive || hasActiveChild ? "text-blue-700 dark:text-primary" : ""
+  );
+
+  if (collapsed) {
+    return (
+      <div className="w-full">
+        <Link
+          href={item.path}
+          title={item.label}
+          className={cn(
+            "flex h-10 items-center justify-center rounded-md px-2 transition-colors",
+            isActive || hasActiveChild
+              ? "bg-blue-50 text-blue-700 dark:bg-primary/15 dark:text-primary"
+              : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-muted-foreground dark:hover:bg-muted dark:hover:text-foreground",
+            level > 0 && "ml-3 h-9 w-[calc(100%-0.75rem)]"
+          )}
+        >
+          <IconComponent className={iconClassName} />
+        </Link>
+      </div>
+    );
+  }
+
   if (hasChildren) {
     return (
       <div className="w-full">
@@ -229,7 +255,7 @@ function AdminMenuItem({ item, level = 0 }: MenuItemComponentProps) {
           )}
         >
           <span className="flex min-w-0 items-center gap-3">
-            <IconComponent className="h-4 w-4 shrink-0" />
+            <IconComponent className={iconClassName} />
             <span className="truncate">{item.label}</span>
           </span>
           <ChevronDown
@@ -261,7 +287,7 @@ function AdminMenuItem({ item, level = 0 }: MenuItemComponentProps) {
         level > 0 && "ml-3 h-9 w-[calc(100%-0.75rem)] text-xs",
       )}
     >
-      <IconComponent className="h-4 w-4 shrink-0" />
+      <IconComponent className={iconClassName} />
       <span className="truncate">{item.label}</span>
     </Link>
   );
@@ -341,10 +367,32 @@ export function AdminSidebar({
   const adminItems = buildAdminTree(adminMenuItems);
   const isQueueActive =
     pathname === "/admin/queues" || pathname.startsWith("/admin/queues/");
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    try {
+      const value = localStorage.getItem("elp_sidebar_collapsed");
+      if (value !== null) setCollapsed(value === "1");
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("elp_sidebar_collapsed", next ? "1" : "0");
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
 
   if (isLoading) {
     return (
-      <aside className="hidden w-[204px] shrink-0 border-r border-slate-200 bg-white lg:block dark:border-border dark:bg-card">
+      <aside className={cn("hidden shrink-0 border-r border-slate-200 bg-white transition-[width] duration-300 ease-out lg:block dark:border-border dark:bg-card overflow-hidden", collapsed ? "w-20" : "w-[204px]")}>
         <div className="flex h-32 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -353,14 +401,14 @@ export function AdminSidebar({
   }
 
   return (
-    <aside className="hidden w-[204px] shrink-0 border-r border-slate-200 bg-white shadow-sm lg:block dark:border-border dark:bg-card">
+    <aside className={cn("hidden shrink-0 border-r border-slate-200 bg-white shadow-sm transition-[width] duration-300 ease-out lg:block dark:border-border dark:bg-card overflow-hidden", collapsed ? "w-20" : "w-[204px]")}>
       <div className="sticky top-0 flex h-screen flex-col">
-        <div className="flex h-[70px] items-center justify-center border-b border-slate-100 px-4 dark:border-border">
+        <div className={cn("flex h-[50px] items-center border-b border-slate-100 px-4 dark:border-border", collapsed ? "justify-center" : "justify-center") }>
           <Link href="/admin" className="flex items-center gap-3">
-            <div className="relative flex h-11 w-11 items-center justify-center rounded-full border border-blue-100 bg-white shadow-sm">
+            <div className="relative flex h-11 w-11 items-center justify-center rounded-full border border-blue-100 bg-white shadow-sm shrink-0">
               <div className="h-7 w-7 rounded-full bg-[conic-gradient(from_20deg,#facc15_0_28%,#2563eb_0_58%,#38bdf8_0_76%,#facc15_0)]" />
             </div>
-            <div className="leading-tight">
+            <div className={cn("leading-tight transition-all duration-300 ease-out overflow-hidden", collapsed ? "max-w-0 opacity-0 -translate-x-2 scale-95" : "max-w-[7rem] opacity-100 translate-x-0 scale-100") } aria-hidden={collapsed}>
               <p className="text-sm font-bold tracking-[0.08em] text-slate-800 dark:text-foreground">
                 ENGLISH
               </p>
@@ -373,29 +421,34 @@ export function AdminSidebar({
 
         <button
           type="button"
-          className="absolute -right-3 top-6 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm dark:border-border dark:bg-card"
-          aria-label="Thu gon menu"
+          onClick={toggleCollapsed}
+          className="z-40 absolute -right-3 top-6 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm dark:border-border dark:bg-card"
+          aria-label="Thu gọn menu"
         >
-          <ChevronLeft className="h-3.5 w-3.5" />
+          <ChevronLeft className={cn("h-3.5 w-3.5 transition-transform duration-300", collapsed && "rotate-180")} />
         </button>
 
         <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-2 py-4">
           {adminItems.map((item) => (
-            <AdminMenuItem key={item.id} item={item} />
+            <AdminMenuItem key={item.id} item={item} collapsed={collapsed} />
           ))}
 
           <div className="my-3 border-t border-slate-100 pt-3 dark:border-border">
             <Link
               href="/admin/queues"
               className={cn(
-                "flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors",
+                "flex h-10 items-center rounded-md px-3 text-sm font-medium transition-colors",
                 isQueueActive
                   ? "border-l-2 border-blue-600 bg-blue-50 text-blue-700 dark:border-primary dark:bg-primary/15 dark:text-primary"
                   : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-muted-foreground dark:hover:bg-muted dark:hover:text-foreground",
+                collapsed ? "justify-center px-2" : "gap-3",
               )}
+              title="Queue Monitor"
             >
               <Zap className="h-4 w-4 shrink-0" />
-              <span className="truncate">Queue Monitor</span>
+              <span className={cn("truncate transition-all duration-300 ease-out", collapsed ? "max-w-0 opacity-0 -translate-x-2 scale-95" : "max-w-[10rem] opacity-100 translate-x-0 scale-100") } aria-hidden={collapsed}>
+                Queue Monitor
+              </span>
             </Link>
           </div>
         </nav>

@@ -386,7 +386,7 @@ export default function AdminUsersPage() {
         <div className="h-full overflow-auto">
           <table className="min-w-[1200px] w-full table-fixed border-collapse text-xs">
             <colgroup>
-              <col className="w-[116px]" />
+              <col className="w-[100px]" />
               <col className="w-[190px]" />
               <col className="w-[230px]" />
               <col className="w-[170px]" />
@@ -414,7 +414,7 @@ export default function AdminUsersPage() {
                   <th
                     key={heading}
                     className={cn(
-                      "h-10 whitespace-nowrap border-b border-r border-slate-200 px-3 text-left font-medium last:border-r-0 dark:border-border",
+                      "h-8 whitespace-nowrap border-b border-r border-slate-200 px-3 text-left font-medium last:border-r-0 dark:border-border",
                       heading === "Mã NV" &&
                         "sticky left-0 z-30 bg-slate-50 dark:bg-muted",
                     )}
@@ -428,9 +428,9 @@ export default function AdminUsersPage() {
               {users.map((user, index) => (
                 <tr
                   key={user.id}
-                  className="h-10 border-b border-slate-100 hover:bg-blue-50/40 dark:border-border dark:hover:bg-muted/40"
+                  className="h-8 border-b border-slate-100 hover:bg-blue-50/40 dark:border-border dark:hover:bg-muted/40"
                 >
-                  <td className="sticky left-0 z-10 max-w-0 whitespace-nowrap border-r border-slate-100 bg-white px-3 text-blue-700 dark:border-border dark:bg-card dark:text-primary">
+                  <td className="sticky left-0 z-10 max-w-0 whitespace-nowrap border-r border-slate-100 bg-white px-2 text-blue-700 dark:border-border dark:bg-card dark:text-primary">
                     <button
                       type="button"
                       className="block max-w-full truncate underline-offset-2 hover:underline"
@@ -439,7 +439,7 @@ export default function AdminUsersPage() {
                       {employeeCode(user, index)}
                     </button>
                   </td>
-                  <td className="max-w-0 border-r border-slate-100 px-3 font-medium dark:border-border">
+                  <td className="max-w-0 border-r border-slate-100 px-2 font-medium dark:border-border">
                     <div className="flex min-w-0 items-center gap-2">
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700">
                         {user.fullName?.charAt(0)?.toUpperCase() || "U"}
@@ -450,7 +450,7 @@ export default function AdminUsersPage() {
                   {/* <td className="whitespace-nowrap border-r border-slate-100 px-3 dark:border-border">
                     {(user as any).phone || "---"}
                   </td> */}
-                  <td className="max-w-0 border-r border-slate-100 px-3 dark:border-border">
+                  <td className="max-w-0 border-r border-slate-100 px-2 dark:border-border">
                     <TruncatedText>{user.email || "---"}</TruncatedText>
                   </td>
                   {/* <td className="border-r border-slate-100 px-3 dark:border-border">
@@ -478,7 +478,7 @@ export default function AdminUsersPage() {
                       </SelectContent>
                     </Select>
                   </td> */}
-                  <td className="max-w-0 border-r border-slate-100 px-3 dark:border-border">
+                  <td className="max-w-0 border-r border-slate-100 px-2 dark:border-border">
                     <button
                       type="button"
                       onClick={() =>
@@ -518,7 +518,7 @@ export default function AdminUsersPage() {
                   <td className="whitespace-nowrap border-r border-slate-100 px-3 dark:border-border">
                     {(user as any).department || "---"}
                   </td> */}
-                  <td className="max-w-0 border-r border-slate-100 px-3 dark:border-border">
+                  <td className="max-w-0 border-r border-slate-100 px-2 dark:border-border">
                     <SearchableSelect
                       value=""
                       onValueChange={(roleCode) => handleRoleSelect(user, roleCode)}

@@ -228,7 +228,7 @@ export function AdminDataTable<T extends { id: string }>({
             style={{ minWidth }}
           >
             <colgroup>
-              <col style={{ width: 116 }} />
+              <col style={{ width: 100 }} />
               {columns.map((column) => (
                 <col
                   key={column.key}
@@ -246,7 +246,7 @@ export function AdminDataTable<T extends { id: string }>({
                   <th
                     key={column.key}
                     className={cn(
-                      "h-10 whitespace-nowrap border-b border-r border-slate-200 px-3 text-left font-medium last:border-r-0 dark:border-border",
+                      "h-8 whitespace-nowrap border-b border-r border-slate-200 px-3 text-left font-medium last:border-r-0 dark:border-border",
                       column.className,
                     )}
                   >
@@ -275,7 +275,7 @@ export function AdminDataTable<T extends { id: string }>({
                 visibleData.map((item, index) => (
                   <tr
                     key={item.id}
-                    className="h-10 border-b border-slate-100 hover:bg-blue-50/40 dark:border-border dark:hover:bg-muted/40"
+                    className="h-8 border-b border-slate-100 hover:bg-blue-50/40 dark:border-border dark:hover:bg-muted/40"
                   >
                     <td className="sticky left-0 z-10 max-w-0 whitespace-nowrap border-r border-slate-100 bg-white px-3 font-medium text-blue-700 dark:border-border dark:bg-card dark:text-primary">
                       <button
@@ -290,7 +290,7 @@ export function AdminDataTable<T extends { id: string }>({
                       <td
                         key={column.key}
                         className={cn(
-                          "max-w-0 border-r border-slate-100 px-3 dark:border-border",
+                          "max-w-0 border-r border-slate-100 px-2 dark:border-border",
                           column.className,
                         )}
                       >

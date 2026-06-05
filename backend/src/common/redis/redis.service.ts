@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy, Logger } from "@nestjs/common";
-import Redis from "ioredis";
+import Redis, { type Callback, type RedisKey } from "ioredis";
 
 @Injectable()
 export class RedisService extends Redis implements OnModuleDestroy {
@@ -30,6 +30,47 @@ export class RedisService extends Redis implements OnModuleDestroy {
 
   async onModuleDestroy() {
     await this.quit();
+  }
+
+  override del(
+    ...args: [...keys: RedisKey[], callback: Callback<number>]
+  ): Promise<number>;
+  override del(
+    ...args: [keys: RedisKey[], callback: Callback<number>]
+  ): Promise<number>;
+  override del(...args: [...keys: RedisKey[]]): Promise<number>;
+  override del(...args: [keys: RedisKey[]]): Promise<number>;
+  override async del(
+    ...args:
+      | [...keys: RedisKey[], callback: Callback<number>]
+      | [keys: RedisKey[], callback: Callback<number>]
+      | [...keys: RedisKey[]]
+      | [keys: RedisKey[]]
+  ): Promise<number> {
+    const callback =
+      typeof args[args.length - 1] === "function"
+        ? (args[args.length - 1] as Callback<number>)
+        : undefined;
+    const commandArgs = callback ? args.slice(0, -1) : args;
+    const keys =
+      commandArgs.length === 1 && Array.isArray(commandArgs[0])
+        ? commandArgs[0]
+        : (commandArgs as RedisKey[]);
+
+    if (keys.length === 0) {
+      callback?.(null, 0);
+      return 0;
+    }
+
+    try {
+      const deletedCount = await super.del(...keys);
+      callback?.(null, deletedCount);
+      return deletedCount;
+    } catch (error) {
+      this.logger.warn(`Redis del failed for keys ${keys.join(",")}: ${error}`);
+      callback?.(null, 0);
+      return 0;
+    }
   }
 
   async getJson<T>(key: string): Promise<T | null> {
